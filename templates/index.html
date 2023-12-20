@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        form {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f8f8f8;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        input[type="submit"] {
+            background-color: #4caf50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+
+        p {
+            margin-top: 20px;
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+       
+
+.container {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+}
+
+.form-container, .display-container {
+    max-width: 400px;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f8f8f8;
+}
+
+.display-container {
+    margin-left: 20px;
+}
+
+.display-container h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.display-container p {
+    margin-bottom: 8px;
+}
+
+.display-container pre {
+    white-space: pre-wrap;
+}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <form action="/" method="POST">
+                <label for="fileName">Enter File Name:</label>
+                <input type="text" name="fileName" required>
+                
+                <label for="textInput">Text Input:</label>
+                <textarea name="textInput" rows="4" cols="50" required></textarea>
+                
+                <input type="submit">
+                
+                {{ if .error }}
+                <p class="error">{{ .error }}</p>
+                {{ end }}
+            </form>
+        </div>
+
+        {{ if .text }}
+        <div class="display-container">
+            <h2>File Information</h2>
+            <p><strong>File Name:</strong> {{ .fileName }} <strong>.txt</strong></p>
+            <p><strong>Text Content:</strong></p>
+            <pre>{{ .text }}</pre>
+        </div>
+        {{ end }}
+    </div>
+</body>
+</html>
