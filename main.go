@@ -64,7 +64,7 @@ func main() {
 }
 
 func initS3Client(region, accessKey, secretKey string) *s3.S3 {
-	sess, err := session.NewSession(&aws.Config{ // sess is a variable that will store the created AWS session.
+	sess, err := session.NewSession(&aws.Config{ //
 		Region:      aws.String(region),
 		Credentials: credentials.NewStaticCredentials(accessKey, secretKey, ""),
 	})
