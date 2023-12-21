@@ -19,8 +19,8 @@ func main() {
 	// AWS S3 configuration
 	awsRegion := "ap-south-1"
 	awsBucket := "files-input-v1"
-	awsAccessKey := "AKIAUW7IC24WI7EUSU5T"
-	awsSecretKey := "YZSbDy7OZZf/6B9GQrSqc8aB9vdJWmoG6fQ/8p8N"
+	awsAccessKey := "YOur acces key"
+	awsSecretKey := "Your sec Key"
 
 	s3Client := initS3Client(awsRegion, awsAccessKey, awsSecretKey)
 
