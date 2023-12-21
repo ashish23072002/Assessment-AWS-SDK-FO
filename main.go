@@ -60,7 +60,7 @@ func main() {
 			"fileName": fileName,
 		})
 	})
-	r.Run() // listen and serve on 0.0.0.0:8080
+	r.Run() // listen and serve 80
 }
 
 func initS3Client(region, accessKey, secretKey string) *s3.S3 {
