@@ -1,90 +1,31 @@
-import { useAuth } from '@/hooks/use-auth';
-import { Button, Checkbox, CircularProgress, FormControlLabel, TextField, Typography } from '@mui/material';
-import { useMutation } from '@tanstack/react-query';
-import { useFormik } from 'formik';
-import { Link } from 'react-router-dom';
-import * as Yup from 'yup';
-
-function Login() {
-  const { login } = useAuth();
-
-  const { mutate, isLoading } = useMutation({ mutationFn: login });
-
-  const initialValues: Partial<UserAuth> = {
-    email: '',
-    password: '',
-    keyClockLogin: false
-  };
-
-  const validationSchema = Yup.object({
-    email: Yup.string()
-      .email('Invalid email address')
-      .required('Required')
-      .matches(/[a-zA-Z0-9.]+@vodafone.com$/),
-    password: Yup.string().max(20, 'Must be 20 characters or less').required('Required')
-  });
-
-  const formik = useFormik<Partial<UserAuth>>({
-    initialValues,
-    validationSchema,
-    onSubmit: values => mutate(values)
-  });
-
-  return (
-    <>
-      <form onSubmit={formik.handleSubmit} noValidate autoComplete="off">
-        <Typography variant="h5" component="h1">
-          Login to V-Collab
-        </Typography>
-        <TextField
-          error={formik.touched.email && formik.errors.email ? true : false}
-          type="email"
-          id="email"
-          label="Email"
-          placeholder="Enter your email"
-          variant="standard"
-          fullWidth
-          onChange={formik.handleChange}
-          onBlur={formik.handleBlur}
-          value={formik.values.email}
-        />
-        <TextField
-          error={formik.touched.password && formik.errors.password ? true : false}
-          type="password"
-          id="password"
-          label="Password"
-          placeholder="Enter password"
-          variant="standard"
-          onChange={formik.handleChange}
-          onBlur={formik.handleBlur}
-          value={formik.values.password}
-          fullWidth
-        />
-        {isLoading && (
-          <Button variant="contained" fullWidth color="error">
-            <CircularProgress color="inherit" style={{ width: '24px', height: '24px' }} />
-          </Button>
-        )}
-        {!isLoading && (
-          <Button variant="contained" fullWidth color="error" type="submit" disabled={!formik.isValid}>
-            Login
-          </Button>
-        )}
-        {!formik.values.keyClockLogin && (
-          <Typography component="p">
-            New to V-Collab?
-            <Link to="/auth/register"> Register</Link>
-          </Typography>
-        )}
-        <FormControlLabel
-          control={
-            <Checkbox checked={formik.values.keyClockLogin} onChange={formik.handleChange} name="keyClockLogin" />
-          }
-          label="KeyClock Login"
-        />
-      </form>
-    </>
-  );
-}
-
-export default Login;
+<div style={{ position: 'relative', width: '100%' }}>
+                <TextField
+                  fullWidth
+                  label="Name"
+                  id="name"
+                  name="name"
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  value={formik.values.name}
+                  error={formik.touched.name && formik.errors.name ? true : false}
+                ></TextField>
+                {formik.touched.name && formik.errors.name && (
+                  <Button
+                    style={{
+                      position: 'absolute',
+                      top: '28%',
+                      right: '2px',
+                      fontSize: 'x-small',
+                      background: 'transparent',
+                      color: 'red',
+                      minWidth: 'auto',
+                      height: '43%'
+                    }}
+                    onClick={() => alert(formik.errors.name)}
+                  >
+                    <span>
+                      <i className="bi bi-question-circle fs-6"></i>
+                    </span>
+                  </Button>
+                )}
+              </div>
