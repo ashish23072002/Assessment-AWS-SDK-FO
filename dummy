@@ -1,4 +1,5 @@
-const initialValues: Partial<Template> = {
+
+  const initialValues: Partial<Template> = {
     id: '',
     template: '',
     resources_id: [''],
@@ -12,7 +13,12 @@ const initialValues: Partial<Template> = {
     // id: Yup.string().required('Required').matches(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/),
     name: Yup.string()
       .required('Required')
-      .matches(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/),
+      .matches(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/, 'Invalid format. Use lowercase letters, numbers, and hyphens only.')
+       .transform(value => {
+     const transformedValue = value ? value.toLowerCase().replace(/\s+/g, '-') : value;
+     console.log('Transformed name:', transformedValue);
+     return transformedValue;
+   }),
     description: Yup.string().required('Required'),
     project_id: Yup.string().required('Required')
   });
@@ -22,3 +28,16 @@ const initialValues: Partial<Template> = {
     validationSchema,
     onSubmit: values => mutate(values)
   });
+
+  async function createTemplate(values: Partial<Template>): Promise<void> {
+    try {
+      const body: Partial<Template> = {
+        ...values,
+        id: values.name
+      };
+      await axios.post<Partial<Template>, Template>('templates', body);
+      navigate(`/projects/${projectName}/templates`);
+    } catch (err: any) {
+      setAlert(err.message || 'Failed to create template, please try again.');
+    }
+  }
