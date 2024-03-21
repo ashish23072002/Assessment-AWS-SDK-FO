@@ -1,31 +1,24 @@
-<div style={{ position: 'relative', width: '100%' }}>
-                <TextField
-                  fullWidth
-                  label="Name"
-                  id="name"
-                  name="name"
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  value={formik.values.name}
-                  error={formik.touched.name && formik.errors.name ? true : false}
-                ></TextField>
-                {formik.touched.name && formik.errors.name && (
-                  <Button
-                    style={{
-                      position: 'absolute',
-                      top: '28%',
-                      right: '2px',
-                      fontSize: 'x-small',
-                      background: 'transparent',
-                      color: 'red',
-                      minWidth: 'auto',
-                      height: '43%'
-                    }}
-                    onClick={() => alert(formik.errors.name)}
-                  >
-                    <span>
-                      <i className="bi bi-question-circle fs-6"></i>
-                    </span>
-                  </Button>
-                )}
-              </div>
+const initialValues: Partial<Template> = {
+    id: '',
+    template: '',
+    resources_id: [''],
+    name: '',
+    description: '',
+    variables: {},
+    project_id: projectName
+  };
+
+  const validationSchema = Yup.object({
+    // id: Yup.string().required('Required').matches(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/),
+    name: Yup.string()
+      .required('Required')
+      .matches(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/),
+    description: Yup.string().required('Required'),
+    project_id: Yup.string().required('Required')
+  });
+
+  const formik = useFormik<Partial<Template>>({
+    initialValues,
+    validationSchema,
+    onSubmit: values => mutate(values)
+  });
