@@ -41,7 +41,12 @@
 
 {
     "images": {
-        "container": [
+        "Default": [
+            "asp",
+            "vnc",
+            "vnc2"
+        ],
+         "Custom": [
             "atpgui123",
             "atpfroz11ide",
             "atpgui",
