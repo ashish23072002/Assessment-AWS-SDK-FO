@@ -1,37 +1,38 @@
-const initialValues: Partial<Template> = {
-    id: '',
-    template: '',
-    resources_id: [''],
-    name: '',
-    description: '',
-    variables: {},
-    project_id: projectName
-  };
-
-  const validationSchema = Yup.object({
-    // id: Yup.string().required('Required').matches(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/),
-    name: Yup.string()
-      .required('Required')
-      .matches(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/),
-    description: Yup.string().required('Required'),
-    project_id: Yup.string().required('Required')
-  });
-
-  const formik = useFormik<Partial<Template>>({
-    initialValues,
-    validationSchema,
-    onSubmit: values => mutate(values)
-  });
-
-  async function createTemplate(values: Partial<Template>): Promise<void> {
+ const { data: images } = useQuery({ queryKey: ['images'], queryFn: fetchImages });
+  async function fetchImages(): Promise<string[] | undefined> {
     try {
-      const body: Partial<Template> = {
-        ...values,
-        id: values.name
-      };
-      await axios.post<Partial<Template>, Template>('templates', body);
-      navigate(`/projects/${projectName}/templates`);
+      const res = await axios.get<string[]>(`workspaces/images?project_id=${projectName}`);
+      const buildImages: string[] = [];
+      Object.entries<[string, string[]]>(res['images']).forEach(([key, values]) => {
+        values.forEach(value => buildImages.push(`${key}:${value}`));
+      });
+      return buildImages;
     } catch (err: any) {
-      setAlert(err.message || 'Failed to create template, please try again.');
+      setAlert(err.message || 'Failed to fetch images, please try again.');
     }
   }
+
+<Box component="div" display="flex" justifyContent="center" marginBottom="16px" height="fit-content">
+            <Box component="div" width="35%" display="flex" alignItems="center">
+              Select image for your new workspace
+            </Box>
+            <Box component="div" width="45%">
+              <TextField
+                select
+                fullWidth
+                id="image"
+                name="image"
+                label="Select Image"
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.image}
+                error={formik.touched.image && formik.errors.image ? true : false}
+              >
+                {images?.map(image => (
+                  <MenuItem value={image} key={image}>
+                    {image}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+          </Box>
