@@ -1,43 +1,17 @@
- const { data: images } = useQuery({ queryKey: ['images'], queryFn: fetchImages });
-  async function fetchImages(): Promise<string[] | undefined> {
+async function removeUserFromProject(id: string, email: string): Promise<void> {
     try {
-      const res = await axios.get<string[]>(`workspaces/images?project_id=${projectName}`);
-      const buildImages: string[] = [];
-      Object.entries<[string, string[]]>(res['images']).forEach(([key, values]) => {
-        values.forEach(value => buildImages.push(`${key}:${value}`));
-      });
-      return buildImages;
+      const body: Record<string, string[]> = {
+        project_members: [email]
+      };
+      if (id === user.id) {
+        throw new Error('loggedin user cannot be deleted.');
+      }
+      await axios.put<Partial<Group>, Group>(`projects/${projectId}/remove`, body);
+      setAlert('User Removed Successfully.', { type: 'success' });
     } catch (err: any) {
-      setAlert(err.message || 'Failed to fetch images, please try again.');
+      setAlert(err.message || 'Failed to delete user, please try again.');
     }
   }
-
-<Box component="div" display="flex" justifyContent="center" marginBottom="16px" height="fit-content">
-            <Box component="div" width="35%" display="flex" alignItems="center">
-              Select image for your new workspace
-            </Box>
-            <Box component="div" width="45%">
-              <TextField
-                select
-                fullWidth
-                id="image"
-                name="image"
-                label="Select Image"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.image}
-                error={formik.touched.image && formik.errors.image ? true : false}
-              >
-                {images?.map(image => (
-                  <MenuItem value={image} key={image}>
-                    {image}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
-          </Box>
-
-
 
 {
     "images": {
