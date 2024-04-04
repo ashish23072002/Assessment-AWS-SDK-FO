@@ -1,17 +1,119 @@
-async function removeUserFromProject(id: string, email: string): Promise<void> {
+import { useAlertContext } from '@/context/alert-context';
+import { useAuth } from '@/hooks/use-auth';
+import axios from '@/shared/api-service';
+import { Button, CircularProgress, TextField, Typography } from '@mui/material';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useFormik } from 'formik';
+import { Dispatch, SetStateAction } from 'react';
+import { useNavigate } from 'react-router-dom';
+import * as Yup from 'yup';
+
+interface SubscribeProjectProps extends Props {
+  onClose: Dispatch<SetStateAction<boolean>>;
+}
+
+function SubscribeProject({ onClose }: SubscribeProjectProps) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { setAlert } = useAlertContext();
+  const queryClient = useQueryClient();
+
+  const { mutate, isLoading: sPLoading } = useMutation({
+    mutationFn: subscribeProject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'], refetchPage: () => true });
+    }
+  });
+
+  interface ApprovalPayload extends Approval {
+    resource_name: string;
+  }
+  const initialValues: Partial<ApprovalPayload> = {
+    request_from: user?.email,
+    request_type: 'PROJECT_SUBSCRIPTION',
+    resource_name: '',
+    resource_type: 'PROJECT',
+    is_existing_resource: true,
+    resource: { name: '' }
+  };
+
+  const validationSchema = Yup.object({
+    resource_name: Yup.string().required('resource_id is required.')
+  });
+
+  async function subscribeProject(values: Partial<ApprovalPayload>): Promise<void> {
     try {
-      const body: Record<string, string[]> = {
-        project_members: [email]
-      };
-      if (id === user.id) {
-        throw new Error('loggedin user cannot be deleted.');
-      }
-      await axios.put<Partial<Group>, Group>(`projects/${projectId}/remove`, body);
-      setAlert('User Removed Successfully.', { type: 'success' });
+      const body = { ...values };
+      delete body.resource_name;
+      await axios.post<Partial<Approval>, Approval>('approvals', body);
+      onClose(false);
+      navigate('/approvals');
     } catch (err: any) {
-      setAlert(err.message || 'Failed to delete user, please try again.');
+      setAlert(err.message || 'Failed to subscribe project, please try again.');
     }
   }
+
+  async function fetchAndUpdateResourceId(): Promise<void> {
+    try {
+      const res = await axios.get<Partial<Group>>(`projects/name/${formik.values.resource_name}`);
+      formik.setFieldValue('resource_name', res.body.name);
+      formik.setFieldValue('resource', { name: res.body.name });
+      setAlert('Project Exist', { type: 'success' });
+    } catch (err: any) {
+      setAlert(err.message || 'Failed to subscribe project, please try again.');
+    }
+  }
+  
+  const formik = useFormik<Partial<ApprovalPayload>>({
+    initialValues,
+    validationSchema,
+    onSubmit: values => mutate(values)
+  });
+
+  return (
+    <form onSubmit={formik.handleSubmit} noValidate autoComplete="off">
+      <Typography variant="h5" component="h1" className="mb-3">
+        Subscribe to an existing project
+      </Typography>
+      <TextField
+        className="mb-3"
+        type="text"
+        id="resource_name"
+        label="Project Name*"
+        placeholder="project name"
+        variant="standard"
+        fullWidth
+        onChange={formik.handleChange}
+        // onBlur={fetchAndUpdateResourceId}
+        value={formik.values.resource_name}
+        error={formik.touched.resource_name && formik.errors.resource_name ? true : false}
+      />
+    
+      {sPLoading && (
+        <Button variant="contained" fullWidth color="error" type="submit" style={{ padding: '6px 55px' }} >
+          <CircularProgress color="inherit" style={{ width: '24px', height: '24px' }} />
+        </Button>
+      )}
+    <span className='d-flex flex-row'>
+      {!sPLoading && (
+        <Button className='m-2' variant="contained" fullWidth color="error" onClick={fetchAndUpdateResourceId}>
+          Validate
+        </Button>
+        
+      )}
+      {!sPLoading && (
+        <Button className='m-2' variant="contained" fullWidth color="error" type="submit" disabled={!formik.isValid}>
+          Submit
+        </Button>
+        
+      )}
+    </span>
+    </form>
+  );
+}
+
+export default SubscribeProject;
+
 
 {
     "images": {
