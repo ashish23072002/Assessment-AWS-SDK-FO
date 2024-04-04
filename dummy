@@ -4,7 +4,7 @@ import axios from '@/shared/api-service';
 import { Button, CircularProgress, TextField, Typography } from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFormik } from 'formik';
-import { Dispatch, SetStateAction } from 'react';
+import { Dispatch, SetStateAction, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as Yup from 'yup';
 
@@ -24,6 +24,7 @@ function SubscribeProject({ onClose }: SubscribeProjectProps) {
       queryClient.invalidateQueries({ queryKey: ['projects'], refetchPage: () => true });
     }
   });
+  const [projectExists, setProjectExists] = useState(false);
 
   interface ApprovalPayload extends Approval {
     resource_name: string;
@@ -59,11 +60,16 @@ function SubscribeProject({ onClose }: SubscribeProjectProps) {
       formik.setFieldValue('resource_name', res.body.name);
       formik.setFieldValue('resource', { name: res.body.name });
       setAlert('Project Exist', { type: 'success' });
+      setProjectExists(true);
     } catch (err: any) {
+      setProjectExists(false);
       setAlert(err.message || 'Failed to subscribe project, please try again.');
     }
   }
-  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    formik.handleChange(e);
+    setProjectExists(false);
+  }
   const formik = useFormik<Partial<ApprovalPayload>>({
     initialValues,
     validationSchema,
@@ -83,7 +89,7 @@ function SubscribeProject({ onClose }: SubscribeProjectProps) {
         placeholder="project name"
         variant="standard"
         fullWidth
-        onChange={formik.handleChange}
+        onChange={handleChange}
         // onBlur={fetchAndUpdateResourceId}
         value={formik.values.resource_name}
         error={formik.touched.resource_name && formik.errors.resource_name ? true : false}
@@ -101,8 +107,8 @@ function SubscribeProject({ onClose }: SubscribeProjectProps) {
         </Button>
         
       )}
-      {!sPLoading && (
-        <Button className='m-2' variant="contained" fullWidth color="error" type="submit" disabled={!formik.isValid}>
+      {!sPLoading && projectExists && (
+        <Button className='m-2' variant="contained" fullWidth color="error" type="submit" disabled={!formik.isValid || !projectExists} >
           Submit
         </Button>
         
@@ -113,7 +119,6 @@ function SubscribeProject({ onClose }: SubscribeProjectProps) {
 }
 
 export default SubscribeProject;
-
 
 {
     "images": {
