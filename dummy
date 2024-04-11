@@ -1,122 +1,34 @@
-import { useAlertContext } from '@/context/alert-context';
-import { useAuth } from '@/hooks/use-auth';
-import axios from '@/shared/api-service';
-import { Button, CircularProgress, TextField, Typography } from '@mui/material';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useFormik } from 'formik';
-import { Dispatch, SetStateAction, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import * as Yup from 'yup';
+Sem 1-
 
-interface SubscribeProjectProps extends Props {
-  onClose: Dispatch<SetStateAction<boolean>>;
-}
+MCS215 Security and Cyber Laws- 24.06.2024 MON,E
 
-function SubscribeProject({ onClose }: SubscribeProjectProps) {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { setAlert } = useAlertContext();
-  const queryClient = useQueryClient();
+MCS212 Discrete Mathematics -  26.06.2024 WED ,E
 
-  const { mutate, isLoading: sPLoading } = useMutation({
-    mutationFn: subscribeProject,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'], refetchPage: () => true });
-    }
-  });
-  const [projectExists, setProjectExists] = useState(false);
+MCS213 Software Engineering -28.06.2024  FRI ,E 
 
-  interface ApprovalPayload extends Approval {
-    resource_name: string;
-  }
-  const initialValues: Partial<ApprovalPayload> = {
-    request_from: user?.email,
-    request_type: 'PROJECT_SUBSCRIPTION',
-    resource_name: '',
-    resource_type: 'PROJECT',
-    is_existing_resource: true,
-    resource: { name: '' }
-  };
+MCS214 Professional Skills and Ethics 02.07.2024 TUE ,E
 
-  const validationSchema = Yup.object({
-    resource_name: Yup.string().required('resource_id is required.')
-  });
+MCS211 Design and Analysis of Algorithms- 05.07.2024 FRI ,M
 
-  async function subscribeProject(values: Partial<ApprovalPayload>): Promise<void> {
-    try {
-      const body = { ...values };
-      delete body.resource_name;
-      await axios.post<Partial<Approval>, Approval>('approvals', body);
-      onClose(false);
-      navigate('/approvals');
-    } catch (err: any) {
-      setAlert(err.message || 'Failed to subscribe project, please try again.');
-    }
-  }
 
-  async function fetchAndUpdateResourceId(): Promise<void> {
-    try {
-      const res = await axios.get<Partial<Group>>(`projects/name/${formik.values.resource_name}`);
-      formik.setFieldValue('resource_name', res.body.name);
-      formik.setFieldValue('resource', { name: res.body.name });
-      setAlert('Project Exist', { type: 'success' });
-      setProjectExists(true);
-    } catch (err: any) {
-      setProjectExists(false);
-      setAlert(err.message || 'Failed to subscribe project, please try again.');
-    }
-  }
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    formik.handleChange(e);
-    setProjectExists(false);
-  }
-  const formik = useFormik<Partial<ApprovalPayload>>({
-    initialValues,
-    validationSchema,
-    onSubmit: values => mutate(values)
-  });
+Sem 2-
 
-  return (
-    <form onSubmit={formik.handleSubmit} noValidate autoComplete="off">
-      <Typography variant="h5" component="h1" className="mb-3">
-        Subscribe to an existing project
-      </Typography>
-      <TextField
-        className="mb-3"
-        type="text"
-        id="resource_name"
-        label="Project Name*"
-        placeholder="project name"
-        variant="standard"
-        fullWidth
-        onChange={handleChange}
-        // onBlur={fetchAndUpdateResourceId}
-        value={formik.values.resource_name}
-        error={formik.touched.resource_name && formik.errors.resource_name ? true : false}
-      />
-    
-      {sPLoading && (
-        <Button variant="contained" fullWidth color="error" type="submit" style={{ padding: '6px 55px' }} >
-          <CircularProgress color="inherit" style={{ width: '24px', height: '24px' }} />
-        </Button>
-      )}
-    <span className='d-flex flex-row'>
-      {!sPLoading && (
-        <Button className='m-2' variant="contained" fullWidth color="error" onClick={fetchAndUpdateResourceId}>
-          Validate
-        </Button>
-        
-      )}
-      {!sPLoading && projectExists && (
-        <Button className='m-2' variant="contained" fullWidth color="error" type="submit" disabled={!formik.isValid || !projectExists} >
-          Submit
-        </Button>
-        
-      )}
-    </span>
-    </form>
-  );
-}
+MCS218 Data Communication and Computer Networks 25.06.2024 TUE ,E
+
+MCS219 Object Oriented Analysis and Design 27.06.2024 THU , E
+
+MCS220 Web Technologies 22.06.2024 SAT, E
+
+MCS221 Data Warehousing and Data Mining 06.07.2024 SAT ,E
+
+
+
+
+Mca-old
+http://ignou.ac.in/upload/programme/MCA%20programme%20guide%20latest-converted.pdf  
+http://ignou.ac.in/userfiles/datesheet.pdf
+
+http://www.ignou.ac.in/ignou/aboutignou/school/socis/programmes/detail/174/2
 
 export default SubscribeProject;
 
