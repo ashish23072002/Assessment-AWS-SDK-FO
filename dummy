@@ -1,4 +1,122 @@
-<div className="tab-content">
+import { useAuth } from '@/hooks/use-auth';
+import { useAlertContext } from '@/context/alert-context';
+import axios from '@/shared/api-service';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import Modal from '@/components/reusable/modal';
+import SetupProject from '@/components/project/setup-project';
+import { useNavigate } from 'react-router-dom';
+
+interface ProjectUser {
+  id: string;
+  email: string;
+  name: string;
+  type: 'DEVOPS' | 'DEVOPS_LEAD';
+}
+
+type TabType = 'PROJECT' | 'USER';
+type ModalType = 'CREATEPROJECT' | 'ADDUSER';
+
+function SelectProject() {
+  const navigate = useNavigate();
+  const { projectName, projectId, user, setProjectName, setProjectId } = useAuth();
+  const [projectUsers, setProjectUsers] = useState<ProjectUser[]>([]);
+  const { setAlert } = useAlertContext();
+  const [open, setOpen] = useState<boolean>(false);
+  const [tabType, setTabType] = useState<TabType>('PROJECT');
+  const [modalType, setModalType] = useState<ModalType>('CREATEPROJECT');
+
+  const { data: projects, isLoading } = useQuery({ queryKey: ['projects'], queryFn: fetchProjects });
+
+  const handleCheckboxClick = (name: string, id: string) => {
+    setProjectName && setProjectName(name!);
+    setProjectId && setProjectId(id!);
+    navigate(`/projects/${name}/workspaces`);
+  };
+
+  async function fetchProjects(): Promise<Group[] | undefined> {
+    try {
+      const res = await axios.get<Group[]>('projects');
+      return res.body;
+    } catch (err: any) {
+      setAlert(err.message || 'Failed to fetch projects, please try again.');
+    }
+  }
+
+  async function fetchProjectById(): Promise<ProjectUser[] | undefined> {
+    try {
+      const res = await axios.get<Group>(`projects/${projectId}`);
+      const projectUsers: ProjectUser[] = [];
+      if (res.body.project_admins) {
+        res.body.project_admins.forEach(user => projectUsers.push({ ...user, type: 'DEVOPS_LEAD' }));
+      }
+      res.body.project_members?.forEach(user => projectUsers.push({ ...user, type: 'DEVOPS' }));
+      setProjectUsers(projectUsers);
+      return projectUsers;
+    } catch (err: any) {
+      setAlert(err.message || 'Failed to fetch projects, please try again.');
+    }
+  }
+
+  function setAndOpenModalType(type: ModalType): void {
+    setModalType(type);
+    setOpen(true);
+  }
+
+  function openProjectSetup(projectOpen: boolean) {
+    if (projectOpen) {
+      setOpen(true);
+    } else {
+      setOpen(false);
+    }
+  }
+  function handleUserClicked() {
+    setTabType('USER');
+    fetchProjectById();
+  }
+  async function removeUserFromProject(id: string, email: string): Promise<void> {
+    try {
+      const body: Record<string, string[]> = {
+        project_members: [email]
+      };
+      if (id === user.id) {
+        throw new Error('loggedin user cannot be deleted.');
+      }
+      await axios.put<Partial<Group>, Group>(`projects/${projectId}/remove`, body);
+      setAlert('User Removed Successfully.', { type: 'success' });
+    } catch (err: any) {
+      setAlert(err.message || 'Failed to delete user, please try again.');
+    }
+  }
+
+  return (
+    <div>
+      {isLoading && <div className="w-100 p-3 border">Loading...</div>}
+      {!isLoading && (
+        <>
+          <nav>
+            <div className="nav nav-tabs">
+              <button
+                className={`nav-link${tabType === 'PROJECT' ? ' active' : ''}`}
+                type="button"
+                role="tab"
+                onClick={() => setTabType('PROJECT')}
+              >
+                Project
+              </button>
+              {user?.permissions?.DevOps_Lead?.includes(projectName || '') && (
+                <button
+                  className={`nav-link${tabType === 'USER' ? ' active' : ''}`}
+                  type="button"
+                  role="tab"
+                  onClick={handleUserClicked}
+                >
+                  USER
+                </button>
+              )}
+            </div>
+          </nav>
+          <div className="tab-content">
             {tabType === 'PROJECT' && (
               <div className="tab-pane d-block">
                 {user?.permissions?.DevOps_Lead?.length > 0 && (
@@ -41,16 +159,50 @@
 
                               
                             </td>
-                            <td style={{ width: '10px' }}>
-                            {user?.permissions?.DevOps_Lead?.includes(projectName || '') && (
-                                <button
-                                  className="btn btn-danger btn-sm"
-                                  type="submit"
-                                  
-                                >
-                                  Update Quota
-                                </button>
-                              )}
+                            
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            {tabType === 'USER' && (
+              <div className="tab-pane d-block">
+               
+                <div className="table-responsive">
+                  <table className="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th scope="col" className="text-nowrap">
+                          Name
+                        </th>
+                        <th scope="col" className="text-nowrap">
+                          Email ID
+                        </th>
+                        <th scope="col" className="text-nowrap">
+                          Type
+                        </th>
+                        <th scope="col" className="text-center">
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {!isLoading &&
+                        projectUsers?.map(users => (
+                          <tr key={users.id}>
+                            <td className="text-nowrap align-middle">{users.name || '--'}</td>
+                            <td className="text-nowrap align-middle">{users.email || '--'}</td>
+                            <td className="text-nowrap align-middle">{users.type || '--'}</td>
+                            <td className="text-center align-middle align-middle">
+                              <button
+                                className="btn btn-danger py-1 px-4"
+                                onClick={() => removeUserFromProject(users.id, users.email)}
+                                disabled={users.email == user.email}
+                              >
+                                Remove
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -59,6 +211,19 @@
                 </div>
               </div>
             )}
+          </div>
+        </>
+      )}
+      <Modal open={open} onClose={() => setOpen(false)}>
+        {modalType === 'CREATEPROJECT' && <SetupProject onClose={() => openProjectSetup(false)} />}
+       
+      </Modal>
+    </div>
+  );
+}
+
+export default SelectProject;
+
 
 {
     "images": {
