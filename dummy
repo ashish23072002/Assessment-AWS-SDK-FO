@@ -1,36 +1,64 @@
-Sem 1-
+<div className="tab-content">
+            {tabType === 'PROJECT' && (
+              <div className="tab-pane d-block">
+                {user?.permissions?.DevOps_Lead?.length > 0 && (
+                  <div className="col  d-flex justify-content-end align-items-start mt-1 mb-1">
+                    <button
+                      className="btn btn-danger btn-sm float-right ml-9"
+                      type="submit"
+                      onClick={() => setAndOpenModalType('CREATEPROJECT')}
+                    >
+                      Create Project
+                    </button>
+                  </div>
+                )}
+                <div className="table-responsive">
+                  <table className="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th scope="col" className="text-nowrap" style={{ maxWidth: '7px' }}></th>
+                        <th scope="col" className="text-nowrap">
+                          Name
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {!isLoading &&
+                        projects?.map(project => (
+                          <tr key={project.name}>
+                            <td className="text-center align-middle" style={{ maxWidth: '19px' }}>
+                              <input
+                                className="form-check-input fs-5 m-0  align-middle"
+                                type="checkbox"
+                                id="flexCheckDefault"
+                                onClick={() => handleCheckboxClick(project.name, project.id)}
+                                checked={project.name === projectName}
+                                disabled={project.name === 'Default'}
+                              ></input>
+                            </td>
+                            <td className="text-nowrap align-middle" style={{ maxWidth: '19px' }}>
+                              {project.name || '--'}
 
-MCS215 Security and Cyber Laws- 24.06.2024 MON,E
-
-MCS212 Discrete Mathematics -  26.06.2024 WED ,E
-
-MCS213 Software Engineering -28.06.2024  FRI ,E 
-
-MCS214 Professional Skills and Ethics 02.07.2024 TUE ,E
-
-MCS211 Design and Analysis of Algorithms- 05.07.2024 FRI ,M
-
-
-Sem 2-
-
-MCS218 Data Communication and Computer Networks 25.06.2024 TUE ,E
-
-MCS219 Object Oriented Analysis and Design 27.06.2024 THU , E
-
-MCS220 Web Technologies 22.06.2024 SAT, E
-
-MCS221 Data Warehousing and Data Mining 06.07.2024 SAT ,E
-
-
-
-
-Mca-old
-http://ignou.ac.in/upload/programme/MCA%20programme%20guide%20latest-converted.pdf  
-http://ignou.ac.in/userfiles/datesheet.pdf
-
-http://www.ignou.ac.in/ignou/aboutignou/school/socis/programmes/detail/174/2
-
-export default SubscribeProject;
+                              
+                            </td>
+                            <td style={{ width: '10px' }}>
+                            {user?.permissions?.DevOps_Lead?.includes(projectName || '') && (
+                                <button
+                                  className="btn btn-danger btn-sm"
+                                  type="submit"
+                                  
+                                >
+                                  Update Quota
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
 {
     "images": {
