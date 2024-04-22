@@ -1,21 +1,159 @@
-const { data: projects, isLoading } = useQuery({ queryKey: ['projects'], queryFn: fetchProjects });
+import { useAlertContext } from '@/context/alert-context';
+import { useAuth } from '@/hooks/use-auth';
+import axios from '@/shared/api-service';
+import { Button, CircularProgress, TextField, Typography } from '@mui/material';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useFormik } from 'formik';
+import { Dispatch, SetStateAction } from 'react';
+import { useNavigate } from 'react-router-dom';
+import * as Yup from 'yup';
+
+interface SetupProjectProps extends Props {
+  onClose: Dispatch<SetStateAction<boolean>>;
+  project: Group;
+}
+
+function QuotaIncrease({ onClose, project }: SetupProjectProps) {
+  const { setAlert } = useAlertContext();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { mutate, isLoading } = useMutation({
-    mutationFn: projectSetup,
+    mutationFn: updateProjectQuota,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'], refetchPage: () => true });
     }
   });
 
+  const initialValues: Partial<Approval> = {
+    request_from: user?.email,
+    request_type: 'PROJECT_UPDATION',
+    resource_type: 'PROJECT',
+    is_existing_resource: true,
+    resource: project
+  };
+  delete initialValues.resource?.project_admins;
+  delete initialValues.resource?.project_members;
 
-  async function fetchProjects(): Promise<Group[] | undefined> {
+  const validationSchema = Yup.object({
+    request_from: Yup.string().required('project_owner email is required.'),
+    resource: Yup.object({
+      cpu_quota: Yup.number()
+        .positive('CPU quota must be a positive number.')
+        .integer('CPU quota must be an integer.')
+        .required('CPU quota is required.'),
+      memory_quota: Yup.number()
+        .positive('CPU quota must be a positive number.')
+        .integer('CPU quota must be an integer.')
+        .required('CPU quota is required.'),
+      storage_quota: Yup.number()
+        .positive('CPU quota must be a positive number.')
+        .integer('CPU quota must be an integer.')
+        .required('CPU quota is required.')
+    })
+  });
+
+  async function updateProjectQuota(values: Partial<Approval>): Promise<void> {
     try {
-      const res = await axios.get<Group[]>('projects');
-      return res.body;
+      const body = { ...values };
+      await axios.post<Partial<Approval>, Approval>('approvals', body);
+      onClose(false);
+      navigate('/approvals');
     } catch (err: any) {
-      setAlert(err.message || 'Failed to fetch projects, please try again.');
+      setAlert(err.response.data.message || 'Failed to subscribe project, please try again.');
     }
   }
+
+  const formik = useFormik<Partial<Approval>>({
+    initialValues,
+    validationSchema,
+    onSubmit: values => mutate(values)
+  });
+
+  return (
+    <form onSubmit={formik.handleSubmit} noValidate autoComplete="off">
+      <Typography variant="h5" component="h1" className="mb-3">
+        Increase Project Quota
+      </Typography>
+      <TextField
+        className="mb-3"
+        type="number"
+        id={`resource.cpu_quota`}
+        label="CPU"
+        placeholder="cpu"
+        variant="standard"
+        fullWidth
+        onChange={formik.handleChange}
+        onBlur={formik.handleBlur}
+        value={formik?.values?.resource?.cpu_quota}
+      />
+      <TextField
+        className="mb-3"
+        type="number"
+        id={`resource.memory_quota`}
+        label="Memory"
+        placeholder="memory"
+        variant="standard"
+        fullWidth
+        onChange={formik.handleChange}
+        onBlur={formik.handleBlur}
+        value={formik?.values?.resource?.memory_quota}
+      />
+      <TextField
+        className="mb-3"
+        type="number"
+        id={`resource.storage_quota`}
+        label="Storage"
+        placeholder="storage"
+        variant="standard"
+        fullWidth
+        onChange={formik.handleChange}
+        onBlur={formik.handleBlur}
+        value={formik?.values?.resource?.storage_quota}
+      />
+      <TextField
+        disabled
+        className="mb-3"
+        type="text"
+        id="name"
+        label="Project Name*"
+        placeholder="name"
+        variant="standard"
+        fullWidth
+        onChange={formik.handleChange}
+        onBlur={formik.handleBlur}
+        value={formik.values.resource?.name}
+        // error={formik.touched.resource?.name && formik.errors.resource?.name ? true : false}
+      />
+      <TextField
+        disabled
+        className="mb-3"
+        type="email"
+        id="request_from"
+        label="Project Owner*"
+        placeholder="project owner email"
+        variant="standard"
+        fullWidth
+        value={formik.values.request_from}
+        error={formik.touched.request_from && formik.errors.request_from ? true : false}
+      />
+
+      {isLoading && (
+        <Button variant="contained" fullWidth color="error" type="submit" style={{ padding: '6px 55px' }}>
+          <CircularProgress color="inherit" style={{ width: '24px', height: '24px' }} />
+        </Button>
+      )}
+      {!isLoading && (
+        <Button variant="contained" fullWidth color="error" type="submit" disabled={!formik.isValid}>
+          Submit
+        </Button>
+      )}
+    </form>
+  );
+}
+
+export default QuotaIncrease;
 
 {
     "images": {
