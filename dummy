@@ -1,178 +1,122 @@
 import { useAlertContext } from '@/context/alert-context';
 import { useAuth } from '@/hooks/use-auth';
 import axios from '@/shared/api-service';
-import { Button, CircularProgress, TextField, Typography } from '@mui/material';
+import { Button, CircularProgress, Typography } from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useFormik } from 'formik';
-import { Dispatch, SetStateAction } from 'react';
-import { useNavigate } from 'react-router-dom';
-import * as Yup from 'yup';
+import { Dispatch, SetStateAction, useState } from 'react';
 
-interface SetupProjectProps extends Props {
+interface AddUsersToProjectProps extends Props {
   onClose: Dispatch<SetStateAction<boolean>>;
-  project: Group;
+  fetchProjectById: () => Promise<void>;
 }
 
-function QuotaIncrease({ onClose, project }: SetupProjectProps) {
+function AddUsersToProject({ onClose, fetchProjectById }: AddUsersToProjectProps) {
+  const { projectId } = useAuth();
   const { setAlert } = useAlertContext();
-  const navigate = useNavigate();
-  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [memberEmail, setMemberEmail] = useState('');
+  const [projectMembers, setProjectMembers] = useState<string[]>([]);
 
-  const { mutate, isLoading } = useMutation({
-    mutationFn: updateProjectQuota,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'], refetchPage: () => true });
+  const { mutate: mutateProjectUsers, isLoading } = useMutation({
+    mutationFn: addUsersToProject,
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     }
   });
 
-  const initialValues: Partial<Approval> = {
-    request_from: user?.email,
-    request_type: 'PROJECT_UPDATION',
-    resource_type: 'PROJECT',
-    is_existing_resource: true,
-    resource: project
-  };
-  delete initialValues.resource?.project_admins;
-  delete initialValues.resource?.project_members;
+  function addUserToQueue(): void {
+    setProjectMembers([...projectMembers, memberEmail]);
+    setMemberEmail('');
+  }
 
-  const validationSchema = Yup.object({
-    request_from: Yup.string().required('project_owner email is required.'),
-    resource: Yup.object({
-      cpu_quota: Yup.number()
-        .positive('CPU quota must be a positive number.')
-        .integer('CPU quota must be an integer.')
-        .required('CPU quota is required.'),
-      memory_quota: Yup.number()
-        .positive('CPU quota must be a positive number.')
-        .integer('CPU quota must be an integer.')
-        .required('CPU quota is required.'),
-      storage_quota: Yup.number()
-        .positive('CPU quota must be a positive number.')
-        .integer('CPU quota must be an integer.')
-        .required('CPU quota is required.')
-    })
-  });
+  function removeUserFromQueue(idx: number): void {
+    const prevUsers = [...projectMembers];
+    prevUsers.splice(idx, 1);
+    setProjectMembers(prevUsers);
+  }
 
-  async function updateProjectQuota(values: Partial<Approval>): Promise<void> {
+  async function addUsersToProject(): Promise<void> {
     try {
-      const body = { ...values };
-      await axios.post<Partial<Approval>, Approval>('approvals', body);
+      const body: Record<string, string[]> = {
+        project_members: projectMembers
+      };
+      await axios.put<Partial<Group>, Group>(`projects/${projectId}/add`, body);
+      await fetchProjectById();
       onClose(false);
-      navigate('/approvals');
     } catch (err: any) {
-      setAlert(err.response.data.message || 'Failed to subscribe project, please try again.');
+      setAlert(err.response.data.message || 'Failed to add users to the project, please try again.');
     }
   }
 
-  const formik = useFormik<Partial<Approval>>({
-    initialValues,
-    validationSchema,
-    onSubmit: values => mutate(values)
-  });
-
   return (
-    <form onSubmit={formik.handleSubmit} noValidate autoComplete="off">
+    <form onSubmit={e => e.preventDefault()} noValidate autoComplete="off">
       <Typography variant="h5" component="h1" className="mb-3">
-        Increase Project Quota
+        Add Users To Project
       </Typography>
-      <TextField
-        className="mb-3"
-        type="number"
-        id={`resource.cpu_quota`}
-        label="CPU"
-        placeholder="cpu"
-        variant="standard"
-        fullWidth
-        onChange={formik.handleChange}
-        onBlur={formik.handleBlur}
-        value={formik?.values?.resource?.cpu_quota}
-      />
-      <TextField
-        className="mb-3"
-        type="number"
-        id={`resource.memory_quota`}
-        label="Memory"
-        placeholder="memory"
-        variant="standard"
-        fullWidth
-        onChange={formik.handleChange}
-        onBlur={formik.handleBlur}
-        value={formik?.values?.resource?.memory_quota}
-      />
-      <TextField
-        className="mb-3"
-        type="number"
-        id={`resource.storage_quota`}
-        label="Storage"
-        placeholder="storage"
-        variant="standard"
-        fullWidth
-        onChange={formik.handleChange}
-        onBlur={formik.handleBlur}
-        value={formik?.values?.resource?.storage_quota}
-      />
-      <TextField
-        disabled
-        className="mb-3"
-        type="text"
-        id="name"
-        label="Project Name*"
-        placeholder="name"
-        variant="standard"
-        fullWidth
-        onChange={formik.handleChange}
-        onBlur={formik.handleBlur}
-        value={formik.values.resource?.name}
-        // error={formik.touched.resource?.name && formik.errors.resource?.name ? true : false}
-      />
-      <TextField
-        disabled
-        className="mb-3"
-        type="email"
-        id="request_from"
-        label="Project Owner*"
-        placeholder="project owner email"
-        variant="standard"
-        fullWidth
-        value={formik.values.request_from}
-        error={formik.touched.request_from && formik.errors.request_from ? true : false}
-      />
-
+      <div className="d-flex mb-3">
+        <input
+          className="form-control me-1"
+          type="text"
+          placeholder="user email"
+          value={memberEmail}
+          onChange={e => setMemberEmail(e.target.value)}
+        />
+        <button
+          className="btn btn-danger btn-sm px-3 mx-1"
+          title="Add User"
+          type="submit"
+          onClick={addUserToQueue}
+          disabled={!memberEmail || !memberEmail.includes('@vodafone.com') || projectMembers.includes(memberEmail)}
+        >
+          +
+        </button>
+      </div>
+      {projectMembers?.map((user, idx) => (
+        <div className="d-flex justify-content-between align-items-center  mb-3 px-1" key={idx}>
+          <p>{user}</p>
+          <i
+            className="bi bi-x-circle text-danger fs-5 me-2 pointer"
+            title="Remove User"
+            onClick={() => removeUserFromQueue(idx)}
+          ></i>
+        </div>
+      ))}
       {isLoading && (
-        <Button variant="contained" fullWidth color="error" type="submit" style={{ padding: '6px 55px' }}>
+        <Button variant="contained" fullWidth color="error" type="button" style={{ padding: '6px 55px' }}>
           <CircularProgress color="inherit" style={{ width: '24px', height: '24px' }} />
         </Button>
       )}
-      {!isLoading && (
-        <Button variant="contained" fullWidth color="error" type="submit" disabled={!formik.isValid}>
+      {!isLoading && projectMembers.length > 0 && (
+        <button className="btn btn-sm btn-danger form-control py-2" type="button" onClick={() => mutateProjectUsers()}>
           Submit
-        </Button>
+        </button>
       )}
     </form>
   );
 }
 
-export default QuotaIncrease;
+export default AddUsersToProject;
 
-{
-    "images": {
-        "Default": [
-            "asp",
-            "vnc",
-            "vnc2"
-        ],
-         "Custom": [
-            "atpgui123",
-            "atpfroz11ide",
-            "atpgui",
-            "atpvscode",
-            "v1",
-            "gui",
-            "mbv",
-            "asp",
-            "vnc",
-            "vnc2"
-        ]
-    }
-}
+
+heaitr whin i am sendaing payload od an existing use we are getting an error iuin risponce which is 
+already_exists
+:
+["Deepak.devops@vodafone.com"]
+invalid_domain
+: 
+null
+not_exists
+: 
+null
+message
+: 
+"Project Details Updated Successfully"
+request_id
+: 
+"a2f80013-edb3-453a-9e3c-97c7a7fd0bea"
+success
+: 
+true
+
+if er are gettin the algesady axxis any email from the backend we want to send the error of the user already exist Like in set elert
+
