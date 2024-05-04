@@ -1,122 +1,133 @@
 import { useAlertContext } from '@/context/alert-context';
-import { useAuth } from '@/hooks/use-auth';
-import axios from '@/shared/api-service';
-import { Button, CircularProgress, Typography } from '@mui/material';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Dispatch, SetStateAction, useState } from 'react';
+import ApiService from '@/shared/api-service';
+import { Button, CircularProgress, TextField, Typography } from '@mui/material';
+import { useMutation } from '@tanstack/react-query';
+import { getIn, useFormik } from 'formik';
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import * as Yup from 'yup';
 
-interface AddUsersToProjectProps extends Props {
-  onClose: Dispatch<SetStateAction<boolean>>;
-  fetchProjectById: () => Promise<void>;
-}
-
-function AddUsersToProject({ onClose, fetchProjectById }: AddUsersToProjectProps) {
-  const { projectId } = useAuth();
+function Register() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { setAlert } = useAlertContext();
-  const queryClient = useQueryClient();
-  const [memberEmail, setMemberEmail] = useState('');
-  const [projectMembers, setProjectMembers] = useState<string[]>([]);
+  const { mutate, isLoading } = useMutation({ mutationFn: signup });
 
-  const { mutate: mutateProjectUsers, isLoading } = useMutation({
-    mutationFn: addUsersToProject,
-    onSuccess: async () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-    }
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const initialValues: Partial<UserAuth> = {
+    name: '',
+    email: location.state?.email || '',
+    password: ''
+  };
+
+  const validationSchema = Yup.object({
+    name: Yup.string().required('Required'),
+    email: Yup.string()
+      .email('Invalid email address')
+      .required('Required')
+      .matches(/[a-zA-Z0-9.]+@vodafone.com$/),
+    password: Yup.string()
+    .required('Required') .matches(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/, 'Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.')
+      .min(6, 'Must be at least 5 characters')
+      .max(20, 'Must be 20 characters or less')
+     
+    });
+
+  const formik = useFormik<Partial<UserAuth>>({
+    initialValues,
+    validationSchema,
+    onSubmit: values => mutate(values)
   });
 
-  function addUserToQueue(): void {
-    setProjectMembers([...projectMembers, memberEmail]);
-    setMemberEmail('');
-  }
+  const handleConfirmPasswordChange = event => {
+    setConfirmPassword(event.target.value);
+  };
 
-  function removeUserFromQueue(idx: number): void {
-    const prevUsers = [...projectMembers];
-    prevUsers.splice(idx, 1);
-    setProjectMembers(prevUsers);
-  }
-
-  async function addUsersToProject(): Promise<void> {
+  async function signup(body: UserAuth): Promise<void> {
     try {
-      const body: Record<string, string[]> = {
-        project_members: projectMembers
-      };
-      await axios.put<Partial<Group>, Group>(`projects/${projectId}/add`, body);
-      await fetchProjectById();
-      onClose(false);
+      if (formik.values.password !== confirmPassword) {
+        return setAlert('New password and confirm password do not match');
+      }
+      await ApiService.postData<UserAuth, User>('signup', body);
+      navigate('/auth/login');
     } catch (err: any) {
-      setAlert(err.response.data.message || 'Failed to add users to the project, please try again.');
+      setAlert((err as ApiError).message);
     }
   }
 
   return (
-    <form onSubmit={e => e.preventDefault()} noValidate autoComplete="off">
-      <Typography variant="h5" component="h1" className="mb-3">
-        Add Users To Project
+    <form onSubmit={formik.handleSubmit} noValidate autoComplete="off">
+      <Typography variant="h5" component="h1">
+        Register to V-Collab
       </Typography>
-      <div className="d-flex mb-3">
-        <input
-          className="form-control me-1"
-          type="text"
-          placeholder="user email"
-          value={memberEmail}
-          onChange={e => setMemberEmail(e.target.value)}
-        />
-        <button
-          className="btn btn-danger btn-sm px-3 mx-1"
-          title="Add User"
-          type="submit"
-          onClick={addUserToQueue}
-          disabled={!memberEmail || !memberEmail.includes('@vodafone.com') || projectMembers.includes(memberEmail)}
-        >
-          +
-        </button>
-      </div>
-      {projectMembers?.map((user, idx) => (
-        <div className="d-flex justify-content-between align-items-center  mb-3 px-1" key={idx}>
-          <p>{user}</p>
-          <i
-            className="bi bi-x-circle text-danger fs-5 me-2 pointer"
-            title="Remove User"
-            onClick={() => removeUserFromQueue(idx)}
-          ></i>
-        </div>
-      ))}
+      <TextField
+        error={formik.touched.name && formik.errors.name ? true : false}
+        type="text"
+        id="name"
+        label="Name"
+        placeholder="Enter your name"
+        variant="standard"
+        onChange={formik.handleChange}
+        onBlur={formik.handleBlur}
+        value={formik.values.name}
+        fullWidth
+      />
+      <TextField
+        error={formik.touched.email && formik.errors.email ? true : false}
+        type="email"
+        id="email"
+        label="Email"
+        placeholder="Enter your email"
+        variant="standard"
+        onChange={formik.handleChange}
+        onBlur={formik.handleBlur}
+        value={formik.values.email}
+        fullWidth
+      />
+      <TextField
+        error={formik.touched.password && formik.errors.password ? true : false}
+        type="password"
+        id="password"
+        label="Password"
+        placeholder="Enter password"
+        variant="standard"
+        onChange={formik.handleChange}
+        onBlur={formik.handleBlur}
+        value={formik.values.password}
+        fullWidth
+        helperText={getIn(formik.errors, 'password') || ''}  
+      />
+      <TextField
+        type="password"
+        id="confirm_password"
+        label="Confirm Password"
+        placeholder="Confirm password"
+        variant="standard"
+        fullWidth
+        onChange={handleConfirmPasswordChange}
+        value={confirmPassword}
+      />
       {isLoading && (
-        <Button variant="contained" fullWidth color="error" type="button" style={{ padding: '6px 55px' }}>
+        <Button variant="contained" fullWidth color="error">
           <CircularProgress color="inherit" style={{ width: '24px', height: '24px' }} />
         </Button>
       )}
-      {!isLoading && projectMembers.length > 0 && (
-        <button className="btn btn-sm btn-danger form-control py-2" type="button" onClick={() => mutateProjectUsers()}>
-          Submit
-        </button>
+      {!isLoading && (
+        <Button variant="contained" fullWidth color="error" type="submit" disabled={!formik.isValid}>
+          Sign Up
+        </Button>
       )}
+      <Typography component="p">
+        Already a member?
+        <Link to="/auth/login"> Login</Link>
+      </Typography>
     </form>
   );
 }
 
-export default AddUsersToProject;
+export default Register;
 
 
-heaitr whin i am sendaing payload od an existing use we are getting an error iuin risponce which is 
-already_exists
-:
-["Deepak.devops@vodafone.com"]
-invalid_domain
-: 
-null
-not_exists
-: 
-null
-message
-: 
-"Project Details Updated Successfully"
-request_id
-: 
-"a2f80013-edb3-453a-9e3c-97c7a7fd0bea"
-success
-: 
-true
-
-if er are gettin the algesady axxis any email from the backend we want to send the error of the user already exist Like in set elert
-
+i wnant this to be the password match shoud be dynamic as soon the requriment  matches the comment also being 
+updated, it shoud remove that condition that is used inside the fieiled , take a example as is we have used uppercasse letter in password then the section of using Upper case shoud be removed.
