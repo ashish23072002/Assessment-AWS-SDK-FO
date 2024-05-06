@@ -215,7 +215,18 @@ export default CreateTemplate;
 
 the date i am givingg through api is this in the box ANF THE keys are
 cpu,name ,memory,storage.
-"variables": {
+"body": [
+        {
+            "description": "Creates GUI inside a pod",
+            "id": "1",
+            "name": "Develop in VDI",
+            "resources": [
+                "kubernetes_deployment",
+                "kubernetes_service"
+            ],
+            "template_data": "bG9jYWxzIHsKICBjbWQgPSAiY3VybCAtTCBodHRwczovL2dpdGh1Yi5jb20vcGFhcy12Y2kvY29kZXItaW1hZ2VzL3JlbGVhc2VzL2Rvd25sb2FkL3YwLjcvYWdlbnQ0IC1vIC90bXAvYWdlbnQgJiYgc3VkbyBjaG93biB2Zi11c2VyIC9ob21lL3ZmLXVzZXIgJiYgY2htb2QgK3ggL3RtcC9hZ2VudCAmJiAvdG1wL2FnZW50IGNvZGUgdm5jIgp9CnJlc291cmNlICJrdWJlcm5ldGVzX2RlcGxveW1lbnQiICJleGFtcGxlIiB7CiAgbWV0YWRhdGEgewogICAgbmFtZSAgICAgID0gdmFyLm5hbWUKICAgIG5hbWVzcGFjZSA9IHZhci5wcm9qZWN0CiAgICBsYWJlbHMgPSB7CiAgICAgIHRlc3QgPSB2YXIubmFtZQogICAgfQogIH0KICBkZXBlbmRzX29uID0gWwogICAga3ViZXJuZXRlc19wZXJzaXN0ZW50X3ZvbHVtZV9jbGFpbS5ob21lCiAgXQogIHNwZWMgewogICAgcmVwbGljYXMgPSAxCgogICAgc2VsZWN0b3IgewogICAgICBtYXRjaF9sYWJlbHMgPSB7CiAgICAgICAgdGVzdCA9IHZhci5uYW1lCiAgICAgIH0KICAgIH0KCiAgICB0ZW1wbGF0ZSB7CiAgICAgIG1ldGFkYXRhIHsKICAgICAgICBsYWJlbHMgPSB7CiAgICAgICAgICB0ZXN0ID0gdmFyLm5hbWUKICAgICAgICB9CiAgICAgIH0KCiAgICAgIHNwZWMgewogICAgICAgIGNvbnRhaW5lciB7CiAgICAgICAgICBpbWFnZSAgICAgICAgICAgICA9IHZhci5jb250YWluZXJfaW1hZ2UKICAgICAgICAgIGltYWdlX3B1bGxfcG9saWN5ID0gIkFsd2F5cyIKICAgICAgICAgIG5hbWUgICAgICAgICAgICAgID0gImRldiIKICAgICAgICAgIGNvbW1hbmQgICAgICAgICAgID0gWyJzaCIsICItYyIsIGxvY2FsLmNtZF0KCiAgICAgICAgICByZXNvdXJjZXMgewogICAgICAgICAgICBsaW1pdHMgPSB7CiAgICAgICAgICAgICAgY3B1ICAgID0gIjUiCiAgICAgICAgICAgICAgbWVtb3J5ID0gIjVHaSIKICAgICAgICAgICAgfQogICAgICAgICAgICByZXF1ZXN0cyA9IHsKICAgICAgICAgICAgICBjcHUgICAgPSB2YXIuY3B1CiAgICAgICAgICAgICAgbWVtb3J5ID0gIiR7dmFyLm1lbW9yeX1HaSIKICAgICAgICAgICAgfQogICAgICAgICAgfQogICAgICAgICAgdm9sdW1lX21vdW50IHsKICAgICAgICAgICAgbmFtZSAgICAgICA9ICJob21lIgogICAgICAgICAgICBtb3VudF9wYXRoID0gIi9ob21lL3ZmLXVzZXIiCgogICAgICAgICAgfQoKICAgICAgICB9CiAgICAgICAgaW1hZ2VfcHVsbF9zZWNyZXRzIHsKICAgICAgICAgIG5hbWUgPSAibXlyZWdpc3RyeWtleSIKICAgICAgICB9CiAgICAgICAgdm9sdW1lIHsKICAgICAgICAgIG5hbWUgPSAiaG9tZSIKICAgICAgICAgIHBlcnNpc3RlbnRfdm9sdW1lX2NsYWltIHsKICAgICAgICAgICAgY2xhaW1fbmFtZSA9IGt1YmVybmV0ZXNfcGVyc2lzdGVudF92b2x1bWVfY2xhaW0uaG9tZS5tZXRhZGF0YS4wLm5hbWUKICAgICAgICAgICAgcmVhZF9vbmx5ICA9IGZhbHNlCiAgICAgICAgICB9CiAgICAgICAgfQoKICAgICAgfQoKICAgIH0KCgogIH0KfQpyZXNvdXJjZSAia3ViZXJuZXRlc19wZXJzaXN0ZW50X3ZvbHVtZV9jbGFpbSIgImhvbWUiIHsKICBtZXRhZGF0YSB7CiAgICBuYW1lICAgICAgPSAiJHt2YXIubmFtZX0taG9tZSIKICAgIG5hbWVzcGFjZSA9IHZhci5wcm9qZWN0CiAgICBsYWJlbHMgPSB7CiAgICAgICJhcHAua3ViZXJuZXRlcy5pby9uYW1lIiA9ICIke3Zhci5uYW1lfS1ob21lLXB2YyIKICAgIH0KICB9CiAgd2FpdF91bnRpbF9ib3VuZCA9IGZhbHNlCiAgc3BlYyB7CiAgICBhY2Nlc3NfbW9kZXMgPSBbIlJlYWRXcml0ZU9uY2UiXQogICAgcmVzb3VyY2VzIHsKICAgICAgcmVxdWVzdHMgPSB7CiAgICAgICAgc3RvcmFnZSA9ICIke3Zhci5zdG9yYWdlfUdpIgogICAgICB9CiAgICB9CiAgfQp9CnJlc291cmNlICJrdWJlcm5ldGVzX3NlcnZpY2UiICJuYW1lIiB7CiAgbWV0YWRhdGEgewogICAgbmFtZSAgICAgID0gdmFyLm5hbWUKICAgIG5hbWVzcGFjZSA9IHZhci5wcm9qZWN0CiAgfQogIHNwZWMgewogICAgc2VsZWN0b3IgPSB7CiAgICAgIHRlc3QgPSB2YXIubmFtZQogICAgfQogICAgcG9ydCB7CiAgICAgIHBvcnQgICAgICAgID0gODAKICAgICAgdGFyZ2V0X3BvcnQgPSA5MDAwCiAgICB9CiAgICB0eXBlID0gIk5vZGVQb3J0IgogIH0KfQoKdmFyaWFibGUgInByb2plY3QiIHsKICB0eXBlICAgID0gc3RyaW5nCiAgZGVmYXVsdCA9ICJsYXRlc3Rwcm9qZWN0IgoKfQoKdmFyaWFibGUgImNvbnRhaW5lcl9pbWFnZSIgewogIHR5cGUgICAgPSBzdHJpbmcKICBkZWZhdWx0ID0gInN1bW1pdGRvY2svY29udGFpbmVyMjp2bmM0IgoKfQoKdmFyaWFibGUgIm5hbWUiIHsKICB0eXBlICAgID0gc3RyaW5nCiAgZGVmYXVsdCA9ICJsYXRlc3R3b3Jrc3BhY2UiCn0KCnZhcmlhYmxlICJjcHUiIHsKICB0eXBlICAgID0gc3RyaW5nCiAgZGVmYXVsdCA9ICIxIgp9Cgp2YXJpYWJsZSAibWVtb3J5IiB7CiAgdHlwZSAgICA9IHN0cmluZwogIGRlZmF1bHQgPSAiMSIKfQp2YXJpYWJsZSAic3RvcmFnZSIgewogIHR5cGUgICAgPSBzdHJpbmcKICBkZWZhdWx0ID0gIjEwIgp9Cgp0ZXJyYWZvcm0gewogIHJlcXVpcmVkX3Byb3ZpZGVycyB7CiAgICBrdWJlcm5ldGVzID0gewogICAgICBzb3VyY2UgID0gImhhc2hpY29ycC9rdWJlcm5ldGVzIgogICAgICB2ZXJzaW9uID0gIj49IDIuMC4wIgogICAgfQogIH0KfQpwcm92aWRlciAia3ViZXJuZXRlcyIgewp9Cg==",
+            "type": "Linux_VDI",
+            "variables": {
                 "cpu": {
                     "type": "number",
                     "default": "1"
@@ -232,5 +243,7 @@ cpu,name ,memory,storage.
                     "type": "number",
                     "default": "10"
                 }
+            }
+        },
 
 so i wnat that cpu memory and storage shoud not be in negative number,however name is string hear take care of that also  ..how to achive this user shoud alyas give the positive in this filed user can not type an negative number
