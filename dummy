@@ -1,133 +1,59 @@
-import { useAlertContext } from '@/context/alert-context';
-import ApiService from '@/shared/api-service';
-import { Button, CircularProgress, TextField, Typography } from '@mui/material';
-import { useMutation } from '@tanstack/react-query';
-import { getIn, useFormik } from 'formik';
-import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import * as Yup from 'yup';
+{Object.entries(selectedStarterTemplate.variables || {}).map(([key, value]) => (
+            <Box
+              component="div"
+              display="flex"
+              justifyContent="center"
+              marginBottom="16px"
+              height="fit-content"
+              key={key}
+            >
+              <Box component="div" width="40%" display="flex" alignItems="center">
+                {key}
+              </Box>
+              <Box component="div" width="40%">
+                <TextField
+                  fullWidth
+                  label={key}
+                  id={key}
+                  name={key}
+                  type={value?.type}
+                  onChange={e =>
+                    formik.setFieldValue('variables', {
+                      ...formik.values.variables,
+                      [key]: { ...value, value: e.target.value }
+                    })
+                  }
+                  onBlur={e =>
+                    formik.setFieldValue('variables', {
+                      ...formik.values.variables,
+                      [key]: { ...value, value: e.target.value }
+                    })
+                  }
+                  defaultValue={value?.default}
+                  value={value?.value}
+                  // error={formik.touched.max_life && formik.errors.max_life ? true : false}
+                ></TextField>
+              </Box>
+            </Box>
+          ))}
+the date i am givingg through api is this in the box ANF THE keys are
+cpu,name ,memory,storage.
+"variables": {
+                "cpu": {
+                    "type": "number",
+                    "default": "1"
+                },
+                "name": {
+                    "type": "string",
+                    "default": "workspace"
+                },
+                "memory": {
+                    "type": "number",
+                    "default": "1"
+                },
+                "storage": {
+                    "type": "number",
+                    "default": "10"
+                }
 
-function Register() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { setAlert } = useAlertContext();
-  const { mutate, isLoading } = useMutation({ mutationFn: signup });
-
-  const [confirmPassword, setConfirmPassword] = useState('');
-
-  const initialValues: Partial<UserAuth> = {
-    name: '',
-    email: location.state?.email || '',
-    password: ''
-  };
-
-  const validationSchema = Yup.object({
-    name: Yup.string().required('Required'),
-    email: Yup.string()
-      .email('Invalid email address')
-      .required('Required')
-      .matches(/[a-zA-Z0-9.]+@vodafone.com$/),
-    password: Yup.string()
-    .required('Required') .matches(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/, 'Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.')
-      .min(6, 'Must be at least 5 characters')
-      .max(20, 'Must be 20 characters or less')
-     
-    });
-
-  const formik = useFormik<Partial<UserAuth>>({
-    initialValues,
-    validationSchema,
-    onSubmit: values => mutate(values)
-  });
-
-  const handleConfirmPasswordChange = event => {
-    setConfirmPassword(event.target.value);
-  };
-
-  async function signup(body: UserAuth): Promise<void> {
-    try {
-      if (formik.values.password !== confirmPassword) {
-        return setAlert('New password and confirm password do not match');
-      }
-      await ApiService.postData<UserAuth, User>('signup', body);
-      navigate('/auth/login');
-    } catch (err: any) {
-      setAlert((err as ApiError).message);
-    }
-  }
-
-  return (
-    <form onSubmit={formik.handleSubmit} noValidate autoComplete="off">
-      <Typography variant="h5" component="h1">
-        Register to V-Collab
-      </Typography>
-      <TextField
-        error={formik.touched.name && formik.errors.name ? true : false}
-        type="text"
-        id="name"
-        label="Name"
-        placeholder="Enter your name"
-        variant="standard"
-        onChange={formik.handleChange}
-        onBlur={formik.handleBlur}
-        value={formik.values.name}
-        fullWidth
-      />
-      <TextField
-        error={formik.touched.email && formik.errors.email ? true : false}
-        type="email"
-        id="email"
-        label="Email"
-        placeholder="Enter your email"
-        variant="standard"
-        onChange={formik.handleChange}
-        onBlur={formik.handleBlur}
-        value={formik.values.email}
-        fullWidth
-      />
-      <TextField
-        error={formik.touched.password && formik.errors.password ? true : false}
-        type="password"
-        id="password"
-        label="Password"
-        placeholder="Enter password"
-        variant="standard"
-        onChange={formik.handleChange}
-        onBlur={formik.handleBlur}
-        value={formik.values.password}
-        fullWidth
-        helperText={getIn(formik.errors, 'password') || ''}  
-      />
-      <TextField
-        type="password"
-        id="confirm_password"
-        label="Confirm Password"
-        placeholder="Confirm password"
-        variant="standard"
-        fullWidth
-        onChange={handleConfirmPasswordChange}
-        value={confirmPassword}
-      />
-      {isLoading && (
-        <Button variant="contained" fullWidth color="error">
-          <CircularProgress color="inherit" style={{ width: '24px', height: '24px' }} />
-        </Button>
-      )}
-      {!isLoading && (
-        <Button variant="contained" fullWidth color="error" type="submit" disabled={!formik.isValid}>
-          Sign Up
-        </Button>
-      )}
-      <Typography component="p">
-        Already a member?
-        <Link to="/auth/login"> Login</Link>
-      </Typography>
-    </form>
-  );
-}
-
-export default Register;
-
-
-i wnant this to be the password match shoud be dynamic as soon the requriment  matches the comment also being 
-updated, it shoud remove that condition that is used inside the fieiled , take a example as is we have used uppercasse letter in password then the section of using Upper case shoud be removed.
+so i wnat that cpu memory and storage shoud not be in negative number,however name is string hear take care of that also  ..how to achive this user shoud alyas give the positive in this filed user can not type an negative number
