@@ -1,249 +1,230 @@
+import styles from '@/assets/styles/pages/navbar.module.css';
 import { useAlertContext } from '@/context/alert-context';
 import { useAuth } from '@/hooks/use-auth';
+import useClickOutsideHide from '@/hooks/use-click-outside-hide';
+import { getUserInitials } from '@/shared/utils';
 import ApiService from '@/shared/api-service';
-import { Box, Button, CircularProgress, MenuItem, TextField, Typography } from '@mui/material';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useFormik } from 'formik';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as Yup from 'yup';
+import { useQuery } from '@tanstack/react-query';
 
-function CreateTemplate() {
+function UserAvatar() {
   const navigate = useNavigate();
-  const { projectName } = useAuth();
   const { setAlert } = useAlertContext();
+  const { user, projectName, updateAuthContext } = useAuth();
+  const [showAvatarCard, setShowAvatarCard] = useState(false);
+  const userInfoCardRef = useClickOutsideHide<HTMLDivElement>(setShowAvatarCard);
+  const [approvalCount, setApprovalCount] = useState<number>(0);
 
-  const queryClient = useQueryClient();
-  const [selectedStarterTemplate, setSelectedStarterTemplate] = useState({} as Template);
+  function getUserName(name: string): string {
+    const nameArray = name.split(' ');
+    return nameArray[0];
+  }
 
-  const { data: starterTemplates } = useQuery({
-    queryKey: ['templates', 'starter'],
-    queryFn: fetchStarterTemplates
+  useEffect(() => {
+    fetchApprovals();
+  }, []);
+
+  async function fetchApprovals(): Promise<void> {
+    try {
+      const res = await ApiService.getData<Approval[]>('approvals');
+      const pendingCount = res.body.filter(n => n.status === 'PENDING').length;
+      setApprovalCount(pendingCount);
+    } catch (err: any) {
+      setAlert((err as ApiError).message);
+    }
+  }
+
+  function handleSettings(settingName: string): void {
+    switch (settingName) {
+      case 'profile':
+        navigate('users/me');
+        break;
+      case 'approvals':
+        navigate('approvals');
+        break;
+      case 'newproject':
+        navigate('project-setup');
+        break;
+      case 'settings':
+        break;
+      case 'reset-password':
+        navigate('auth/reset-password');
+        break;
+      case 'logout':
+        logout(user.email);
+        break;
+    }
+    setShowAvatarCard(false);
+  }
+
+  async function logout(email?: string): Promise<void> {
+    try {
+      // make api call to logout the user
+      // // await ApiService.postData<UserAuth, User>('logout', { email });
+      updateAuthContext({
+        user: null,
+        expiresAt: null,
+        isAuthenticated: null,
+        projectId: localStorage.getItem('projectId'),
+        projectName: localStorage.getItem('projectName'),
+        token: null
+      });
+      console.log(`User with email ${email} logged out successfully.`);
+      navigate('/auth/login', { replace: true });
+    } catch (err: any) {
+      setAlert((err as ApiError).message);
+    }
+  }
+
+  return (
+    <Fragment>
+      <div className={styles.avatar} onClick={() => setShowAvatarCard(prev => !prev)} title={user.email}>
+        <span className="text-danger px-2">
+          <div style={{ fontSize: '15px', fontWeight: 'bold' }} className="text-end">
+            {getUserName(user.name)}
+          </div>
+          <div style={{ fontSize: '11px' }} className="text-end">
+            {user.type === 'ADMIN'
+              ? 'Admin'
+              : user?.permissions.DevOps_Lead?.includes(projectName!)
+              ? 'DevOps_Lead'
+              : 'DevOps'}
+          </div>
+        </span>
+        <span className={styles.avatarIconContainer}>
+          <span className={styles.avatarIcon}>{getUserInitials(user.name)}</span>
+        </span>
+      </div>
+      {showAvatarCard && (
+        <div className={styles.userInfoCard} ref={userInfoCardRef}>
+          <div className={styles.userInfoCardItem} onClick={() => handleSettings('profile')}>
+            <i className="bi bi-person text-danger fs-5 me-2"></i>Profile
+          </div>
+          <div className={`${styles.userInfoCardItem}`} onClick={() => handleSettings('approvals')}>
+            <i className="bi bi-check-all text-danger fs-5 me-2"></i>Approvals
+            <span className={`${styles.approvalCount}`}>{approvalCount}</span>
+          </div>
+          {user.type === 'USER' && (
+            <div className={styles.userInfoCardItem} onClick={() => handleSettings('newproject')}>
+              <i className="bi bi-plus-circle text-danger fs-5 me-2"></i>New Project
+            </div>
+          )}
+          {/* <div className={styles.userInfoCardItem} onClick={() => handleSettings('settings')}>
+            <i className="bi bi-sliders2 text-danger fs-5 me-2"></i>Settings
+          </div> */}
+          <div className={styles.userInfoCardItem} onClick={() => handleSettings('reset-password')}>
+            <i className="bi bi-arrow-clockwise text-danger fs-5 me-2"></i>Reset Password
+          </div>
+          <div className={styles.userInfoCardItem} onClick={() => handleSettings('logout')}>
+            <i className="bi bi-box-arrow-right text-danger fs-5 me-2"></i>Logout
+          </div>
+        </div>
+      )}
+    </Fragment>
+  );
+}
+
+export default UserAvatar;
+
+
+whent the approvals any changes are the done i have to rrefresh the page for the latst count of the approvals how to make this auto dynamic and i dont want to refresh the paeg you can take refrecce of theis code and make changes into this file of UserAvatar
+
+this is the code you can take the refrennce 
+  const { data: notifications } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: fetchNotifications
   });
 
-  async function fetchStarterTemplates(): Promise<Template[] | undefined> {
+  async function fetchNotifications(): Promise<Notification[] | undefined> {
     try {
-      const res = await ApiService.getData<Template[]>(`templates/starter?project_id=${projectName}`);
+      const res = await ApiService.getData<Notification[]>('notifications');
+      setNotificationCount(res.body.filter(n => n.status === 'UNREAD').length);
       return res.body;
     } catch (err: any) {
       setAlert((err as ApiError).message);
     }
   }
 
-  const { mutate, isLoading } = useMutation({
-    mutationFn: createTemplate,
+  const { mutate: mutateNotifications } = useMutation({
+    mutationFn: readNotification,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['templates', 'starter'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
     }
   });
 
-  const initialValues: Partial<Template> = {
-    template: '',
-    resources_id: [''],
-    name: '',
-    type: '',
-    description: '',
-    variables: {},
-    project_id: projectName
-  };
-
-  const validationSchema = Yup.object({
-    // id: Yup.string().required('Required').matches(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/),
-    name: Yup.string()
-      .required('Required')
-      .matches(/^[a-zA-Z0-9]([ a-zA-Z0-9]*[a-zA-Z0-9])?$/),
-    description: Yup.string().required('Required'),
-    project_id: Yup.string().required('Required')
-  });
-
-  const formik = useFormik<Partial<Template>>({
-    initialValues,
-    validationSchema,
-    onSubmit: values => mutate(values)
-  });
-
-  async function createTemplate(values: Partial<Template>): Promise<void> {
+  async function readNotification(id?: string): Promise<void> {
     try {
-      const body: Partial<Template> = {
-        ...values
-      };
-      await ApiService.postData<Partial<Template>, Template>('templates', body);
-      navigate(`/projects/${projectName}/templates`);
-      setAlert('template Created Successfully.', { type: 'success' });
+      const url = id ? `notifications?notification_id=${id}` : 'notifications';
+      await ApiService.updateData<Partial<Notification>, Notification>(url, { status: 'READ' });
+      setNotificationCount(notifications?.filter(n => n.status === 'UNREAD').length || 0);
+      navigate('notifications');
+      setShowNotification(false);
     } catch (err: any) {
       setAlert((err as ApiError).message);
     }
   }
 
-  function handleSelectStarterTemplate(e: any) {
-    setSelectedStarterTemplate(starterTemplates?.filter(x => x.name === e.target.value)[0] as Template);
-  }
-
-  useEffect(() => {
-    // formik.setFieldValue('name', selectedStarterTemplate.name);
-    formik.setFieldValue('description', selectedStarterTemplate.description);
-    formik.setFieldValue('template', selectedStarterTemplate.template_data);
-    formik.setFieldValue('resources_id', selectedStarterTemplate.resources_id || ['']);
-    formik.setFieldValue('variables', selectedStarterTemplate.variables);
-    formik.setFieldValue('type', selectedStarterTemplate.type);
-  }, [selectedStarterTemplate]);
-
   return (
-    <div className="container px-4 mb-4" style={{ height: 'calc(100vh - 181px)' }}>
-      <div className="row p-3 box-shadow radius flex-column h-100 overflow-hidden overflow-y-auto">
-        <form onSubmit={formik.handleSubmit} noValidate autoComplete="off">
-          <Box component="div" display="flex" justifyContent="center" marginBottom="16px" height="fit-content">
-            <Box component="div" width="40%" display="flex" alignItems="center">
-              Select starter template
-            </Box>
-            <Box component="div" width="40%">
-              <TextField
-                select
-                fullWidth
-                id="id"
-                name="id"
-                label="Select Template"
-                onChange={handleSelectStarterTemplate}
-                value={selectedStarterTemplate.id}
-              >
-                {starterTemplates?.map(st => (
-                  <MenuItem key={st.id} value={st.name}>
-                    <Typography variant="inherit" style={{ fontWeight: 'normal', color: 'black' }}>
-                      {st.name}
-                    </Typography>
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
-          </Box>
-
-          <Box component="div" display="flex" justifyContent="center" marginBottom="16px" height="fit-content">
-            <Box component="div" width="40%" display="flex" alignItems="center">
-              Display Name
-            </Box>
-            <Box component="div" width="40%">
-              <TextField
-                fullWidth
-                label="Name"
-                id="name"
-                name="name"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.name}
-                error={formik.touched.name && formik.errors.name ? true : false}
-              ></TextField>
-            </Box>
-          </Box>
-          <Box component="div" display="flex" justifyContent="center" marginBottom="16px" height="fit-content">
-            <Box component="div" width="40%" display="flex" alignItems="center">
-              Description
-            </Box>
-            <Box component="div" width="40%">
-              <TextField
-                fullWidth
-                label="Description"
-                id="description"
-                name="description"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.description}
-                error={formik.touched.description && formik.errors.description ? true : false}
-              ></TextField>
-            </Box>
-          </Box>
-          {Object.entries(selectedStarterTemplate.variables || {}).map(([key, value]) => (
-            <Box
-              component="div"
-              display="flex"
-              justifyContent="center"
-              marginBottom="16px"
-              height="fit-content"
-              key={key}
-            >
-              <Box component="div" width="40%" display="flex" alignItems="center">
-                {key}
-              </Box>
-              <Box component="div" width="40%">
-                <TextField
-                  fullWidth
-                  label={key}
-                  id={key}
-                  name={key}
-                  type={value?.type}
-                  onChange={e =>
-                    formik.setFieldValue('variables', {
-                      ...formik.values.variables,
-                      [key]: { ...value, value: e.target.value }
-                    })
-                  }
-                  onBlur={e =>
-                    formik.setFieldValue('variables', {
-                      ...formik.values.variables,
-                      [key]: { ...value, value: e.target.value }
-                    })
-                  }
-                  defaultValue={value?.default}
-                  value={value?.value}
-                  // error={formik.touched.max_life && formik.errors.max_life ? true : false}
-                ></TextField>
-              </Box>
-            </Box>
-          ))}
-          <Box component="div" display="flex" justifyContent="center" height="fit-content">
-            <Box component="div" width="80%" display="flex" justifyContent="flex-end">
-              <Box component="span" marginLeft="24px">
-                {isLoading && (
-                  <Button variant="contained" color="error" type="submit" style={{ padding: '6px 60px' }}>
-                    <CircularProgress color="inherit" style={{ width: '24px', height: '24px' }} />
-                  </Button>
-                )}
-                {!isLoading && (
-                  <Button variant="contained" color="error" type="submit">
-                    Create Template
-                  </Button>
-                )}
-              </Box>
-            </Box>
-          </Box>
-        </form>
+    <>
+      <div
+        className={`${styles.avatar} ms-2 me-4 position-relative`}
+        onClick={() => setShowNotification(prev => !prev)}
+      >
+        <i className="bi bi-bell-fill text-danger fs-5"></i>
+        <span className={`${styles.notifyCount} box-shadow`}>{notificationCount}</span>
       </div>
-    </div>
+      {showNotification && (
+        <div className={`${styles.notificationInfoCard} container`} ref={notificationRef}>
+          <span className="d-flex my-2 pb-1 justify-content-between align-items-center border-bottom position-relative">
+            <h6 className="m-0 text-black-50 fw-bold">Notifications({notificationCount})</h6>
+            <i
+              className="bi bi-sliders2 fs-5 text-black pointer"
+              onClick={() => setShowNotificationConfig(prev => !prev)}
+            ></i>
+            {showNotificationConfig && (
+              <p className={styles.notificationsConfigCard} ref={notificationConfigRef}>
+                <small className={styles.notificationsConfigCardItem} onClick={() => handleSettings('viewall')}>
+                  view all
+                </small>
+                <small className={styles.notificationsConfigCardItem} onClick={() => handleSettings('markallread')}>
+                  mark all read
+                </small>
+              </p>
+            )}
+          </span>
+          {notifications
+            ?.filter(n => n.status === 'UNREAD')
+            ?.map(notification => (
+              <div
+                key={notification.id}
+                className="row pointer border-bottom"
+                onClick={async () => {
+                  mutateNotifications(notification.id);
+                }}
+              >
+                <div className="col-2 py-3 ps-2 pe-0 d-flex justify-content-center align-items-center">
+                  <span
+                    className="border rounded-circle h6 m-0 text-center text-black-50"
+                    style={{ width: '52px', height: '52px', paddingTop: '16px' }}
+                  >
+                    {getUserInitials(user.name)}
+                  </span>
+                </div>
+                <div className="col-10 py-2" style={{  maxWidth: '333px' }}>
+                  <h6 className="h6 fw-bold mb-1 text-black-50" style={{ fontSize: '14px' }}>
+                    {notification.title}
+                  </h6>
+                  <p className="text-wrap text-black-50 " style={{ fontSize: '14px' }}>
+                    {notification.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+    </>
   );
 }
 
-export default CreateTemplate;
-
-the date i am givingg through api is this in the box ANF THE keys are
-cpu,name ,memory,storage.
-"body": [
-        {
-            "description": "Creates GUI inside a pod",
-            "id": "1",
-            "name": "Develop in VDI",
-            "resources": [
-                "kubernetes_deployment",
-                "kubernetes_service"
-            ],
-            "template_data": "bG9jYWxzIHsKICBjbWQgPSAiY3VybCAtTCBodHRwczovL2dpdGh1Yi5jb20vcGFhcy12Y2kvY29kZXItaW1hZ2VzL3JlbGVhc2VzL2Rvd25sb2FkL3YwLjcvYWdlbnQ0IC1vIC90bXAvYWdlbnQgJiYgc3VkbyBjaG93biB2Zi11c2VyIC9ob21lL3ZmLXVzZXIgJiYgY2htb2QgK3ggL3RtcC9hZ2VudCAmJiAvdG1wL2FnZW50IGNvZGUgdm5jIgp9CnJlc291cmNlICJrdWJlcm5ldGVzX2RlcGxveW1lbnQiICJleGFtcGxlIiB7CiAgbWV0YWRhdGEgewogICAgbmFtZSAgICAgID0gdmFyLm5hbWUKICAgIG5hbWVzcGFjZSA9IHZhci5wcm9qZWN0CiAgICBsYWJlbHMgPSB7CiAgICAgIHRlc3QgPSB2YXIubmFtZQogICAgfQogIH0KICBkZXBlbmRzX29uID0gWwogICAga3ViZXJuZXRlc19wZXJzaXN0ZW50X3ZvbHVtZV9jbGFpbS5ob21lCiAgXQogIHNwZWMgewogICAgcmVwbGljYXMgPSAxCgogICAgc2VsZWN0b3IgewogICAgICBtYXRjaF9sYWJlbHMgPSB7CiAgICAgICAgdGVzdCA9IHZhci5uYW1lCiAgICAgIH0KICAgIH0KCiAgICB0ZW1wbGF0ZSB7CiAgICAgIG1ldGFkYXRhIHsKICAgICAgICBsYWJlbHMgPSB7CiAgICAgICAgICB0ZXN0ID0gdmFyLm5hbWUKICAgICAgICB9CiAgICAgIH0KCiAgICAgIHNwZWMgewogICAgICAgIGNvbnRhaW5lciB7CiAgICAgICAgICBpbWFnZSAgICAgICAgICAgICA9IHZhci5jb250YWluZXJfaW1hZ2UKICAgICAgICAgIGltYWdlX3B1bGxfcG9saWN5ID0gIkFsd2F5cyIKICAgICAgICAgIG5hbWUgICAgICAgICAgICAgID0gImRldiIKICAgICAgICAgIGNvbW1hbmQgICAgICAgICAgID0gWyJzaCIsICItYyIsIGxvY2FsLmNtZF0KCiAgICAgICAgICByZXNvdXJjZXMgewogICAgICAgICAgICBsaW1pdHMgPSB7CiAgICAgICAgICAgICAgY3B1ICAgID0gIjUiCiAgICAgICAgICAgICAgbWVtb3J5ID0gIjVHaSIKICAgICAgICAgICAgfQogICAgICAgICAgICByZXF1ZXN0cyA9IHsKICAgICAgICAgICAgICBjcHUgICAgPSB2YXIuY3B1CiAgICAgICAgICAgICAgbWVtb3J5ID0gIiR7dmFyLm1lbW9yeX1HaSIKICAgICAgICAgICAgfQogICAgICAgICAgfQogICAgICAgICAgdm9sdW1lX21vdW50IHsKICAgICAgICAgICAgbmFtZSAgICAgICA9ICJob21lIgogICAgICAgICAgICBtb3VudF9wYXRoID0gIi9ob21lL3ZmLXVzZXIiCgogICAgICAgICAgfQoKICAgICAgICB9CiAgICAgICAgaW1hZ2VfcHVsbF9zZWNyZXRzIHsKICAgICAgICAgIG5hbWUgPSAibXlyZWdpc3RyeWtleSIKICAgICAgICB9CiAgICAgICAgdm9sdW1lIHsKICAgICAgICAgIG5hbWUgPSAiaG9tZSIKICAgICAgICAgIHBlcnNpc3RlbnRfdm9sdW1lX2NsYWltIHsKICAgICAgICAgICAgY2xhaW1fbmFtZSA9IGt1YmVybmV0ZXNfcGVyc2lzdGVudF92b2x1bWVfY2xhaW0uaG9tZS5tZXRhZGF0YS4wLm5hbWUKICAgICAgICAgICAgcmVhZF9vbmx5ICA9IGZhbHNlCiAgICAgICAgICB9CiAgICAgICAgfQoKICAgICAgfQoKICAgIH0KCgogIH0KfQpyZXNvdXJjZSAia3ViZXJuZXRlc19wZXJzaXN0ZW50X3ZvbHVtZV9jbGFpbSIgImhvbWUiIHsKICBtZXRhZGF0YSB7CiAgICBuYW1lICAgICAgPSAiJHt2YXIubmFtZX0taG9tZSIKICAgIG5hbWVzcGFjZSA9IHZhci5wcm9qZWN0CiAgICBsYWJlbHMgPSB7CiAgICAgICJhcHAua3ViZXJuZXRlcy5pby9uYW1lIiA9ICIke3Zhci5uYW1lfS1ob21lLXB2YyIKICAgIH0KICB9CiAgd2FpdF91bnRpbF9ib3VuZCA9IGZhbHNlCiAgc3BlYyB7CiAgICBhY2Nlc3NfbW9kZXMgPSBbIlJlYWRXcml0ZU9uY2UiXQogICAgcmVzb3VyY2VzIHsKICAgICAgcmVxdWVzdHMgPSB7CiAgICAgICAgc3RvcmFnZSA9ICIke3Zhci5zdG9yYWdlfUdpIgogICAgICB9CiAgICB9CiAgfQp9CnJlc291cmNlICJrdWJlcm5ldGVzX3NlcnZpY2UiICJuYW1lIiB7CiAgbWV0YWRhdGEgewogICAgbmFtZSAgICAgID0gdmFyLm5hbWUKICAgIG5hbWVzcGFjZSA9IHZhci5wcm9qZWN0CiAgfQogIHNwZWMgewogICAgc2VsZWN0b3IgPSB7CiAgICAgIHRlc3QgPSB2YXIubmFtZQogICAgfQogICAgcG9ydCB7CiAgICAgIHBvcnQgICAgICAgID0gODAKICAgICAgdGFyZ2V0X3BvcnQgPSA5MDAwCiAgICB9CiAgICB0eXBlID0gIk5vZGVQb3J0IgogIH0KfQoKdmFyaWFibGUgInByb2plY3QiIHsKICB0eXBlICAgID0gc3RyaW5nCiAgZGVmYXVsdCA9ICJsYXRlc3Rwcm9qZWN0IgoKfQoKdmFyaWFibGUgImNvbnRhaW5lcl9pbWFnZSIgewogIHR5cGUgICAgPSBzdHJpbmcKICBkZWZhdWx0ID0gInN1bW1pdGRvY2svY29udGFpbmVyMjp2bmM0IgoKfQoKdmFyaWFibGUgIm5hbWUiIHsKICB0eXBlICAgID0gc3RyaW5nCiAgZGVmYXVsdCA9ICJsYXRlc3R3b3Jrc3BhY2UiCn0KCnZhcmlhYmxlICJjcHUiIHsKICB0eXBlICAgID0gc3RyaW5nCiAgZGVmYXVsdCA9ICIxIgp9Cgp2YXJpYWJsZSAibWVtb3J5IiB7CiAgdHlwZSAgICA9IHN0cmluZwogIGRlZmF1bHQgPSAiMSIKfQp2YXJpYWJsZSAic3RvcmFnZSIgewogIHR5cGUgICAgPSBzdHJpbmcKICBkZWZhdWx0ID0gIjEwIgp9Cgp0ZXJyYWZvcm0gewogIHJlcXVpcmVkX3Byb3ZpZGVycyB7CiAgICBrdWJlcm5ldGVzID0gewogICAgICBzb3VyY2UgID0gImhhc2hpY29ycC9rdWJlcm5ldGVzIgogICAgICB2ZXJzaW9uID0gIj49IDIuMC4wIgogICAgfQogIH0KfQpwcm92aWRlciAia3ViZXJuZXRlcyIgewp9Cg==",
-            "type": "Linux_VDI",
-            "variables": {
-                "cpu": {
-                    "type": "number",
-                    "default": "1"
-                },
-                "name": {
-                    "type": "string",
-                    "default": "workspace"
-                },
-                "memory": {
-                    "type": "number",
-                    "default": "1"
-                },
-                "storage": {
-                    "type": "number",
-                    "default": "10"
-                }
-            }
-        },
-
-so i wnat that cpu memory and storage shoud not be in negative number,however name is string hear take care of that also  ..how to achive this user shoud alyas give the positive in this filed user can not type an negative number
+export default NotificationCard;
