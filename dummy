@@ -1,4 +1,157 @@
-{Object.entries(selectedStarterTemplate.variables || {}).map(([key, value]) => (
+import { useAlertContext } from '@/context/alert-context';
+import { useAuth } from '@/hooks/use-auth';
+import ApiService from '@/shared/api-service';
+import { Box, Button, CircularProgress, MenuItem, TextField, Typography } from '@mui/material';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useFormik } from 'formik';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import * as Yup from 'yup';
+
+function CreateTemplate() {
+  const navigate = useNavigate();
+  const { projectName } = useAuth();
+  const { setAlert } = useAlertContext();
+
+  const queryClient = useQueryClient();
+  const [selectedStarterTemplate, setSelectedStarterTemplate] = useState({} as Template);
+
+  const { data: starterTemplates } = useQuery({
+    queryKey: ['templates', 'starter'],
+    queryFn: fetchStarterTemplates
+  });
+
+  async function fetchStarterTemplates(): Promise<Template[] | undefined> {
+    try {
+      const res = await ApiService.getData<Template[]>(`templates/starter?project_id=${projectName}`);
+      return res.body;
+    } catch (err: any) {
+      setAlert((err as ApiError).message);
+    }
+  }
+
+  const { mutate, isLoading } = useMutation({
+    mutationFn: createTemplate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates', 'starter'] });
+    }
+  });
+
+  const initialValues: Partial<Template> = {
+    template: '',
+    resources_id: [''],
+    name: '',
+    type: '',
+    description: '',
+    variables: {},
+    project_id: projectName
+  };
+
+  const validationSchema = Yup.object({
+    // id: Yup.string().required('Required').matches(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/),
+    name: Yup.string()
+      .required('Required')
+      .matches(/^[a-zA-Z0-9]([ a-zA-Z0-9]*[a-zA-Z0-9])?$/),
+    description: Yup.string().required('Required'),
+    project_id: Yup.string().required('Required')
+  });
+
+  const formik = useFormik<Partial<Template>>({
+    initialValues,
+    validationSchema,
+    onSubmit: values => mutate(values)
+  });
+
+  async function createTemplate(values: Partial<Template>): Promise<void> {
+    try {
+      const body: Partial<Template> = {
+        ...values
+      };
+      await ApiService.postData<Partial<Template>, Template>('templates', body);
+      navigate(`/projects/${projectName}/templates`);
+      setAlert('template Created Successfully.', { type: 'success' });
+    } catch (err: any) {
+      setAlert((err as ApiError).message);
+    }
+  }
+
+  function handleSelectStarterTemplate(e: any) {
+    setSelectedStarterTemplate(starterTemplates?.filter(x => x.name === e.target.value)[0] as Template);
+  }
+
+  useEffect(() => {
+    // formik.setFieldValue('name', selectedStarterTemplate.name);
+    formik.setFieldValue('description', selectedStarterTemplate.description);
+    formik.setFieldValue('template', selectedStarterTemplate.template_data);
+    formik.setFieldValue('resources_id', selectedStarterTemplate.resources_id || ['']);
+    formik.setFieldValue('variables', selectedStarterTemplate.variables);
+    formik.setFieldValue('type', selectedStarterTemplate.type);
+  }, [selectedStarterTemplate]);
+
+  return (
+    <div className="container px-4 mb-4" style={{ height: 'calc(100vh - 181px)' }}>
+      <div className="row p-3 box-shadow radius flex-column h-100 overflow-hidden overflow-y-auto">
+        <form onSubmit={formik.handleSubmit} noValidate autoComplete="off">
+          <Box component="div" display="flex" justifyContent="center" marginBottom="16px" height="fit-content">
+            <Box component="div" width="40%" display="flex" alignItems="center">
+              Select starter template
+            </Box>
+            <Box component="div" width="40%">
+              <TextField
+                select
+                fullWidth
+                id="id"
+                name="id"
+                label="Select Template"
+                onChange={handleSelectStarterTemplate}
+                value={selectedStarterTemplate.id}
+              >
+                {starterTemplates?.map(st => (
+                  <MenuItem key={st.id} value={st.name}>
+                    <Typography variant="inherit" style={{ fontWeight: 'normal', color: 'black' }}>
+                      {st.name}
+                    </Typography>
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+          </Box>
+
+          <Box component="div" display="flex" justifyContent="center" marginBottom="16px" height="fit-content">
+            <Box component="div" width="40%" display="flex" alignItems="center">
+              Display Name
+            </Box>
+            <Box component="div" width="40%">
+              <TextField
+                fullWidth
+                label="Name"
+                id="name"
+                name="name"
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.name}
+                error={formik.touched.name && formik.errors.name ? true : false}
+              ></TextField>
+            </Box>
+          </Box>
+          <Box component="div" display="flex" justifyContent="center" marginBottom="16px" height="fit-content">
+            <Box component="div" width="40%" display="flex" alignItems="center">
+              Description
+            </Box>
+            <Box component="div" width="40%">
+              <TextField
+                fullWidth
+                label="Description"
+                id="description"
+                name="description"
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                value={formik.values.description}
+                error={formik.touched.description && formik.errors.description ? true : false}
+              ></TextField>
+            </Box>
+          </Box>
+          {Object.entries(selectedStarterTemplate.variables || {}).map(([key, value]) => (
             <Box
               component="div"
               display="flex"
@@ -36,6 +189,30 @@
               </Box>
             </Box>
           ))}
+          <Box component="div" display="flex" justifyContent="center" height="fit-content">
+            <Box component="div" width="80%" display="flex" justifyContent="flex-end">
+              <Box component="span" marginLeft="24px">
+                {isLoading && (
+                  <Button variant="contained" color="error" type="submit" style={{ padding: '6px 60px' }}>
+                    <CircularProgress color="inherit" style={{ width: '24px', height: '24px' }} />
+                  </Button>
+                )}
+                {!isLoading && (
+                  <Button variant="contained" color="error" type="submit">
+                    Create Template
+                  </Button>
+                )}
+              </Box>
+            </Box>
+          </Box>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default CreateTemplate;
+
 the date i am givingg through api is this in the box ANF THE keys are
 cpu,name ,memory,storage.
 "variables": {
