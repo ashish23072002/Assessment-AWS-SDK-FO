@@ -93,11 +93,11 @@ function CreateTemplate() {
       formik.setFieldValue("variables", {
         ...variables,
         [key]: { ...variables[key], value: numericValue }
-      });
+      }); 
     } else {
-      setAlert(`Invalid value for ${key}: must be non-negative and greater than 1.`);
+
       formik.setSubmitting(false); 
-      formik.setFieldTouched(key, true, true);
+      setAlert(`Invalid value for ${key}: must be non-negative and greater than 1.`);
     }
   };
 
@@ -224,3 +224,5 @@ function CreateTemplate() {
 }
 
 export default CreateTemplate;
+
+insted of set elert set a helpwer text into the filed that negative impu is not allowed
