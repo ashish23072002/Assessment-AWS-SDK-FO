@@ -1,228 +1,141 @@
-import { useAlertContext } from "@/context/alert-context";
-import { useAuth } from "@/hooks/use-auth";
-import { useTitle } from "@/hooks/use-title";
-import ApiService from "@/shared/api-service";
-import { Box, Button, CircularProgress, MenuItem, TextField, Typography } from "@mui/material";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useFormik } from "formik";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import * as Yup from "yup";
+import { useAlertContext } from '@/context/alert-context';
+import ApiService from '@/shared/api-service';
+import { Button, CircularProgress, TextField, Typography } from '@mui/material';
+import { useMutation } from '@tanstack/react-query';
+import { getIn, useFormik } from 'formik';
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import * as Yup from 'yup';
 
-function CreateTemplate() {
-  useTitle("Create Template");
+function Register() {
+  const location = useLocation();
   const navigate = useNavigate();
-  const { projectName } = useAuth();
   const { setAlert } = useAlertContext();
+  const { mutate, isLoading } = useMutation({ mutationFn: signup });
 
-  const queryClient = useQueryClient();
-  const [selectedStarterTemplate, setSelectedStarterTemplate] = useState({} as Template);
+  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const { data: starterTemplates } = useQuery({
-    queryKey: ["templates", "starter"],
-    queryFn: fetchStarterTemplates
-  });
-
-  async function fetchStarterTemplates(): Promise<Template[] | undefined> {
-    try {
-      const res = await ApiService.getData<Template[]>(`templates/starter?project_id=${projectName}`);
-      return res.body;
-    } catch (err: any) {
-      setAlert((err as ApiError).message);``
-    }
-  }
-
-  const { mutate, isLoading } = useMutation({
-    mutationFn: createTemplate,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["templates", "starter"] });
-    }
-  });
-
-  const initialValues: Partial<Template> = {
-    template: "",
-    resources_id: [""],
-    name: "",
-    type: "",
-    description: "",
-    variables: {},
-    project_id: projectName
+  const initialValues: Partial<UserAuth> = {
+    name: '',
+    email: location.state?.email || '',
+    password: ''
   };
 
   const validationSchema = Yup.object({
-    // id: Yup.string().required('Required').matches(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/),
-    name: Yup.string()
-      .required("Required")
-      .matches(/^[a-zA-Z0-9]([ a-zA-Z0-9]*[a-zA-Z0-9])?$/),
-    description: Yup.string().required("Required"),
-    project_id: Yup.string().required("Required")
+    name: Yup.string().required('Required'),
+    email: Yup.string()
+      .email('Invalid email address')
+      .required('Required')
+      .matches(/[a-zA-Z0-9.]+@vodafone.com$/),
+    password: Yup.string()
+      .required('Required')
+      .matches(
+        /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/,
+        'Must contain uppercase letter,lowercase letter,digit, and special character.'
+      )
+      .min(6, 'Must be at least 5 characters')
+      .max(20, 'Must be 20 characters or less')
   });
 
-  const formik = useFormik<Partial<Template>>({
+  const formik = useFormik<Partial<UserAuth>>({
     initialValues,
     validationSchema,
-    onSubmit: values => {
-      if (formik.isValid) {
-        mutate(values)
-      } else {
-        setAlert("Please correct the errors before submitting.");
-      }
-    }
+    onSubmit: values => mutate(values)
   });
 
-  async function createTemplate(values: Partial<Template>): Promise<void> {
+  const handleConfirmPasswordChange = event => {
+    setConfirmPassword(event.target.value);
+  };
+
+  async function signup(body: UserAuth): Promise<void> {
     try {
-      const body: Partial<Template> = {
-        ...values
-      };
-      await ApiService.postData<Partial<Template>, Template>("templates", body);
-      navigate(`/projects/${projectName}/templates`);
-      setAlert("template Created Successfully.", { type: "success" });
+      if (formik.values.password !== confirmPassword) {
+        return setAlert('New password and confirm password do not match');
+      }
+      await ApiService.postData<UserAuth, User>('signup', body);
+      navigate('/auth/login');
     } catch (err: any) {
       setAlert((err as ApiError).message);
     }
   }
 
-  function handleSelectStarterTemplate(e: any) {
-    setSelectedStarterTemplate(starterTemplates?.filter(x => x.name === e.target.value)[0] as Template);
-  }
-  const handleInputChange = (key, newValue) => {
-    const numericValue = Number(newValue);
-    const variables = formik.values.variables ?? {};
-    if (numericValue >= 1) {
-      formik.setFieldValue("variables", {
-        ...variables,
-        [key]: { ...variables[key], value: numericValue }
-      }); 
-    } else {
-
-      formik.setSubmitting(false); 
-      setAlert(`Invalid value for ${key}: must be non-negative and greater than 1.`);
-    }
-  };
-
-  useEffect(() => {
-    // formik.setFieldValue('name', selectedStarterTemplate.name);
-    formik.setFieldValue("description", selectedStarterTemplate.description);
-    formik.setFieldValue("template", selectedStarterTemplate.template_data);
-    formik.setFieldValue("resources_id", selectedStarterTemplate.resources_id || [""]);
-    formik.setFieldValue("variables", selectedStarterTemplate.variables);
-    formik.setFieldValue("type", selectedStarterTemplate.type);
-  }, [selectedStarterTemplate]);
-
   return (
-    <div className="container px-4 mb-4" style={{ height: "calc(100vh - 181px)" }}>
-      <div className="row p-3 box-shadow radius flex-column h-100 overflow-hidden overflow-y-auto">
-        <form onSubmit={formik.handleSubmit} noValidate autoComplete="off">
-          <Box component="div" display="flex" justifyContent="center" marginBottom="16px" height="fit-content">
-            <Box component="div" width="40%" display="flex" alignItems="center">
-              Select starter template
-            </Box>
-            <Box component="div" width="40%">
-              <TextField
-                select
-                fullWidth
-                id="id"
-                name="id"
-                label="Select Template"
-                onChange={handleSelectStarterTemplate}
-                value={selectedStarterTemplate.id}
-              >
-                {starterTemplates?.map(st => (
-                  <MenuItem key={st.id} value={st.name}>
-                    <Typography variant="inherit" style={{ fontWeight: "normal", color: "black" }}>
-                      {st.name}
-                    </Typography>
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
-          </Box>
-
-          <Box component="div" display="flex" justifyContent="center" marginBottom="16px" height="fit-content">
-            <Box component="div" width="40%" display="flex" alignItems="center">
-              Display Name
-            </Box>
-            <Box component="div" width="40%">
-              <TextField
-                fullWidth
-                label="Name"
-                id="name"
-                name="name"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.name}
-                error={formik.touched.name && formik.errors.name ? true : false}
-              ></TextField>
-            </Box>
-          </Box>
-          <Box component="div" display="flex" justifyContent="center" marginBottom="16px" height="fit-content">
-            <Box component="div" width="40%" display="flex" alignItems="center">
-              Description
-            </Box>
-            <Box component="div" width="40%">
-              <TextField
-                fullWidth
-                label="Description"
-                id="description"
-                name="description"
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                value={formik.values.description}
-                error={formik.touched.description && formik.errors.description ? true : false}
-              ></TextField>
-            </Box>
-          </Box>
-          {Object.entries(selectedStarterTemplate.variables || {}).map(([key, value]) => (
-            <Box
-              component="div"
-              display="flex"
-              justifyContent="center"
-              marginBottom="16px"
-              height="fit-content"
-              key={key}
-            >
-              <Box component="div" width="40%" display="flex" alignItems="center">
-                {key}
-              </Box>
-              <Box component="div" width="40%">
-                <TextField
-                  fullWidth
-                  label={key}
-                  id={key}
-                  name={key}
-                  type={value?.type}
-                  onChange={e => handleInputChange(key, e.target.value)}
-                  onBlur={e => handleInputChange(key, e.target.value)}
-                  defaultValue={value?.default}
-                  value={value?.value}
-                  // error={formik.touched.max_life && formik.errors.max_life ? true : false}
-                ></TextField>
-              </Box>
-            </Box>
-          ))}
-          <Box component="div" display="flex" justifyContent="center" height="fit-content">
-            <Box component="div" width="80%" display="flex" justifyContent="flex-end">
-              <Box component="span" marginLeft="24px">
-                {isLoading && (
-                  <Button variant="contained" color="error" type="submit" style={{ padding: "6px 60px" }}>
-                    <CircularProgress color="inherit" style={{ width: "24px", height: "24px" }} />
-                  </Button>
-                )}
-                {!isLoading && (
-                  <Button variant="contained" color="error" type="submit">
-                    Create Template
-                  </Button>
-                )}
-              </Box>
-            </Box>
-          </Box>
-        </form>
-      </div>
-    </div>
+    <form onSubmit={formik.handleSubmit} noValidate autoComplete="off">
+      <Typography variant="h5" component="h1">
+        Register to V-Collab
+      </Typography>
+      <TextField
+        error={formik.touched.name && formik.errors.name ? true : false}
+        type="text"
+        id="name"
+        label="Name"
+        placeholder="Enter your name"
+        variant="standard"
+        onChange={formik.handleChange}
+        onBlur={formik.handleBlur}
+        value={formik.values.name}
+        fullWidth
+      />
+      <TextField
+        error={formik.touched.email && formik.errors.email ? true : false}
+        type="email"
+        id="email"
+        label="Email"
+        placeholder="Enter your email"
+        variant="standard"
+        onChange={formik.handleChange}
+        onBlur={formik.handleBlur}
+        value={formik.values.email}
+        fullWidth
+      />
+      <TextField
+        error={formik.touched.password && formik.errors.password ? true : false}
+        type="password"
+        id="password"
+        label="Password"
+        placeholder="Enter password"
+        variant="standard"
+        onChange={formik.handleChange}
+        onBlur={formik.handleBlur}
+        value={formik.values.password}
+        fullWidth
+        helperText={getIn(formik.errors, 'password') || ''}
+      />
+      <TextField
+        type="password"
+        id="confirm_password"
+        label="Confirm Password"
+        placeholder="Confirm password"
+        variant="standard"
+        fullWidth
+        onChange={handleConfirmPasswordChange}
+        value={confirmPassword}
+      />
+      {isLoading && (
+        <Button variant="contained" fullWidth color="error">
+          <CircularProgress color="inherit" style={{ width: '24px', height: '24px' }} />
+        </Button>
+      )}
+      {!isLoading && (
+        <Button variant="contained" fullWidth color="error" type="submit" disabled={!formik.isValid}>
+          Sign Up
+        </Button>
+      )}
+      <Typography component="p">
+        Already a member?
+        <Link to="/auth/login"> Login</Link>
+      </Typography>
+    </form>
   );
 }
 
-export default CreateTemplate;
+export default Register;
 
-insted of set elert set a helpwer text into the filed that negative impu is not allowed
+
+inthis code my reviewr saiid that  
+now goive the accoding changes
+ async function signup(body: UserAuth): Promise<void> {
+    try {
+      if (formik.values.password !== confirmPassword) {
+        return setAlert('New password and confirm password do not match');
+Should be part of formik validation
