@@ -1,156 +1,4 @@
 import styles from "@/assets/styles/common/list-card.module.css";
-import ListCard from "@/components/common/list-card";
-import ImageBuilder from "@/components/project/image-builder";
-import { useAlertContext } from "@/context/alert-context";
-import { useAuth } from "@/hooks/use-auth";
-import { useTitle } from "@/hooks/use-title";
-import ApiService from "@/shared/api-service";
-import Modal from "@/shared/component/modal";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-
-function Builds() {
-  useTitle("Build Images");
-  const queryClient = useQueryClient();
-  const { setAlert } = useAlertContext();
-  const { projectName } = useAuth();
-  const [open, setOpen] = useState<boolean>(false);
-  const [modalType, setModalType] = useState<"build" | "logs">("build");
-  const [buildLogs, setBuildLogs] = useState<LogEventJSON[]>([]);
-  const [imageBuild, setImageBuild] = useState<Build | undefined>(undefined);
-  const [logsLoading, setLogsLoading] = useState(false);
-
-  const { data: builds, isLoading } = useQuery({ queryKey: ["builder"], queryFn: fetchBuilds });
-  async function fetchBuilds(): Promise<Build[] | undefined> {
-    try {
-      const res = await ApiService.getData<Build[]>(`builder?project_id=${projectName}`);
-      return res.body;
-    } catch (err: any) {
-      setAlert((err as ApiError).message);
-    }
-  }
-   
-  async function fetchStatus(id: string): Promise<any> {
-    try {
-      const res = await ApiService.getData<any>(`builder?project_id=${id}/status`);
-      const data = res.body; 
-      console.log('API Status Data:', data); 
-      return data;
-    } catch (err: any) {
-      console.error('Error fetching status data:', err);
-      return null;
-    }
-  }  
-
-  async function deleteBuild(id: string, setLoading: (flag: boolean) => void): Promise<void> {
-    try {
-      await ApiService.deleteData<Build>(`builder/${id}`);
-      queryClient.invalidateQueries({ queryKey: ["builder"] });
-    } catch (err) {
-      setAlert((err as ApiError).message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function updateBuild(id: string): Promise<void> {
-    setImageBuild(() => builds?.find(build => build.id === id));
-    setModalType("build");
-    setOpen(true);
-  }
-
-  async function buildLogsHandler(id: string): Promise<void> {
-    try {
-      setModalType("logs");
-      setOpen(true);
-      setLogsLoading(true);
-      setBuildLogs(await ApiService.getLogs(`builder/${id}/logs?project_id=${projectName}`));
-    } catch (err) {
-      setAlert((err as ApiError).message);
-    } finally {
-      setLogsLoading(false);
-    }
-  }
-
-  return (
-    <div className="container px-4 mb-4" style={{ height: "calc(100vh - 181px)" }}>
-      <div className="row mb-2">
-        <div className="col p-0">
-          <button
-            type="button"
-            className={`btn btn-danger btn-sm float-end px-3 ${styles.addButton}`}
-            onClick={() => {
-              setImageBuild(undefined);
-              setModalType("build");
-              setOpen(true);
-            }}
-          >
-            <i className="bi bi-plus fs-5 text-uppercase"></i>
-            BUILD
-          </button>
-        </div>
-      </div>
-
-      <ListCard
-        isLoading={isLoading}
-        data={builds!}
-        remove={deleteBuild}
-        build={updateBuild}
-        logs={buildLogsHandler}
-        message={"No Build Images Found."}
-        statusData={fetchStatus} 
-      />
-
-      <Modal open={open} close={setOpen} className={styles.mw100}>
-        {modalType === "build" && (
-          <ImageBuilder
-            onClose={() => setOpen(false)}
-            projectName={projectName!}
-            imageBuild={imageBuild}
-            logsHandler={buildLogsHandler}
-          />
-        )}
-        {modalType === "logs" && (
-          <div className="table-responsive" style={{ maxHeight: "70vh", width: "80vw" }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Content</th>
-                  <th>Pod Name</th>
-                  <th>Timestamp</th>
-                  <th>Last</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logsLoading && (
-                  <tr>
-                    <td colSpan={4}>Loading...</td>
-                  </tr>
-                )}
-                {!logsLoading &&
-                  buildLogs.map(log => (
-                    <tr key={log?.timeStamp}>
-                      <td>{log?.content}</td>
-                      <td className="text-nowrap">{log?.podName}</td>
-                      <td className="text-nowrap">{log?.timeStamp}</td>
-                      <td>{log?.last.toString()}</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Modal>
-    </div>
-  );
-}
-
-export default Builds;
-
-this is my filel i wnat ot get status in from fetchStatus function but inside the list card the code of list card is this
-how should i show the sattsus fro the api hear on the list carrd fist see what is the input cummming from the api
-
-import styles from "@/assets/styles/common/list-card.module.css";
 import NoDataFound from "@/components/common/no-data";
 import { useAuth } from "@/hooks/use-auth";
 import Loader from "@/shared/component/loader";
@@ -167,7 +15,6 @@ interface ListCardProps extends Props {
   build?: (build_id: string) => void;
   logs?: (build_id: string) => void;
   remove?: (id: string, setLoading: (flag: boolean) => void) => void;
-  statusData?: (build_id: string) => void;
 }
 
 interface Item {
@@ -181,6 +28,7 @@ function ListCard({ isLoading, data, message, details, update, remove, build, lo
   const [activeItem, setActiveItem] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const isLead: boolean = user?.permissions?.DevOps_Lead?.length > 0;
 
   function showDetails(id: string): void {
     if (activeItem && activeItem === id) setActiveItem("");
@@ -245,7 +93,7 @@ function ListCard({ isLoading, data, message, details, update, remove, build, lo
               <div className="row mb-3 px-2">
                 <div className="col-6">{renderItem(item)}</div>
                 <div className="col-6">
-                  {remove && item?.["created_by"] === user?.email && (
+                  {(!remove || (isLead || item?.["created_by"] === user?.email)) &&  (
                     <button
                       type="button"
                       className={`btn btn-danger py-1 float-end ${styles.button}`}
@@ -295,7 +143,6 @@ function ListCard({ isLoading, data, message, details, update, remove, build, lo
                 </div>
               </div>
             )}
-            
           </div>
         ))}
     </div>
