@@ -1,152 +1,60 @@
-import styles from "@/assets/styles/common/list-card.module.css";
-import NoDataFound from "@/components/common/no-data";
-import { useAuth } from "@/hooks/use-auth";
-import Loader from "@/shared/component/loader";
-import { CircularProgress } from "@mui/material";
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+i wnat that if user click on the custom menue the the this menue shoud be open for the user for entring the intput field  
 
-interface ListCardProps extends Props {
-  isLoading: boolean;
-  data: Item[];
-  message?: string;
-  details?: boolean;
-  update?: boolean;
-  build?: (build_id: string) => void;
-  logs?: (build_id: string) => void;
-  remove?: (id: string, setLoading: (flag: boolean) => void) => void;
-}
+const handleRadioChange = (e, key) => {
+    const value = e.target.value;
 
-interface Item {
-  id: string;
-  name: string;
-  [key: string]: any;
-}
-
-function ListCard({ isLoading, data, message, details, update, remove, build, logs }: ListCardProps) {
-  const { pathname } = useLocation();
-  const [activeItem, setActiveItem] = useState<string>("");
-  const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
-  const isLead: boolean = user?.permissions?.DevOps_Lead?.length > 0;
-
-  function showDetails(id: string): void {
-    if (activeItem && activeItem === id) setActiveItem("");
-    if ((activeItem && activeItem !== id) || !activeItem) setActiveItem(id);
-  }
-
-  function renderItem(item: Item) {
-    return Object.entries(item)
-      .filter(([k]) => k !== "name" && k !== "id" && k !== "template_id")
-      .map(([key, value]) =>
-        !(!value && value !== false) ? (
-          <div key={key}>
-            <span className="text-danger fw-bold text-capitalize">
-              {key === "id" ? "ID" : key.replace(/[_]+/gi, " ")}
-              {": "}
-            </span>
-            {typeof value === "boolean"
-              ? value.toString().toUpperCase()
-              : Array.isArray(value)
-              ? value
-                  .reduce((acc, cv) => {
-                    // Check if the current value is an object
-                    const cvStr = typeof cv === "object" ? JSON.stringify(cv) : cv;
-                    // Concatenate the current value to the accumulator, ensuring it's a string
-                    return acc + ", " + cvStr;
-                  }, "")
-                  .substring(2) // Remove the leading comma and space
-              : typeof value === "object"
-              ? JSON.stringify(value)
-              : value}
-          </div>
-        ) : null
-      );
-  }
-
-  function deleteHandler(id: string) {
-    const pathnames = pathname.split("/");
-    if (confirm(`Are you sure you want to delete this ${pathnames[pathnames.length - 1]}?`)) {
-      setLoading(true);
-      remove && remove(id, setLoading);
+    formik.setFieldValue(key, value);
+    if (key === "tfconfig.drive") {
+      if (e.target.value === "custom") {
+        setShowCustomDriveSizeInput(true);
+        resetDisks();
+      } else {
+        setShowCustomDriveSizeInput(false);
+      
+      }
     }
-  }
-
-  return (
-    <div className={`row p-3 box-shadow position-relative ${styles.card}`}>
-      {isLoading && <Loader />}
-      {!isLoading && (!data || data.length === 0) && <NoDataFound className="h-100" message={message} />}
-      {!isLoading &&
-        data?.map(item => (
-          <div className={`col-12 radius ${styles.cardItem}`} key={item.id}>
-            <div className="d-flex justify-content-between pb-2" style={{ paddingTop: "0.75rem" }}>
-              <span>
-                <span className="text-danger fw-bold">Name: </span>
-                {item.name || item.id}
-              </span>
-              <span className="pointer" onClick={() => showDetails(item.id)}>
-                <i className="bi bi-chevron-down text-danger"></i>
-              </span>
-            </div>
-            {activeItem === item.id && <hr className="mt-0" />}
-            {activeItem === item.id && (
-              <div className="row mb-3 px-2">
-                <div className="col-6">{renderItem(item)}</div>
-                <div className="col-6">
-                  {(!remove || (isLead || item?.["created_by"] === user?.email)) &&  (
-                    <button
-                      type="button"
-                      className={`btn btn-danger py-1 float-end ${styles.button}`}
-                      disabled={!remove || item["operation_name"]?.toUpperCase() === "DELETION"}
-                      onClick={() => deleteHandler(item.id)}
-                    >
-                      {loading && <CircularProgress color="inherit" style={{ width: "24px", height: "24px" }} />}
-                      {!loading && (
-                        <>
-                          <i className="bi bi-trash fs-5"></i> Delete
-                        </>
-                      )}
-                    </button>
+ useEffect(() => {
+    if (showCustomDriveSizeInput && customDriveSizeRef.current) {
+      customDriveSizeRef.current.focus();
+    }
+  }, [showCustomDriveSizeInput]);
+  };
+          <Box component="div" display="flex" justifyContent="center" marginBottom="16px" height="fit-content">
+            <Box component="div" width="35%" display="flex" alignItems="center">
+              Home disk size
+            </Box>
+            <Box component="div" width="45%">
+              <FormControl fullWidth>
+                <TextField
+                  select
+                  label="The size of the home disk in GB"
+                  defaultValue={10}
+                  fullWidth
+                  id="tfconfig.drive"
+                  name="tfconfig.drive"
+                  onChange={e => handleRadioChange(e, "tfconfig.drive")}
+                 
+                  value={formik?.values?.tfconfig?.drive}
+                
+                >
+                  <MenuItem value={10}>10</MenuItem>
+                  <MenuItem value={20}>20</MenuItem>
+                  <MenuItem value={30}>30</MenuItem>
+                  {!showCustomDriveSizeInput && (<MenuItem value={"custom"}>custom</MenuItem>)}
+                  {showCustomDriveSizeInput && (
+                    <TextField
+                    ref={customDriveSizeRef}
+                      label="Enter Custom Drive Size in GB"
+                      fullWidth
+                      id="customDriveSize"
+                      name="customDriveSize"
+                      onChange={e => formik.setFieldValue("tfconfig.drive", e.target.value)}
+                      value={formik.values.tfconfig?.drive}
+                      style={{ marginTop: "8px", width: "39%" }}
+                      size="small"
+                    />
                   )}
-                  {update && item?.["created_by"] === user?.email && (
-                    <Link
-                      className={`btn btn-teal py-1 me-2 float-end ${styles.button} ${styles.updateButton}`}
-                      to={`${pathname}/${item.id}/update`}
-                    >
-                      <i className="bi bi-upload fs-5"></i> Update
-                    </Link>
-                  )}
-                  {build && (
-                    <button
-                      className={`btn btn-teal py-1 me-2 float-end ${styles.button}  ${styles.updateButton}`}
-                      onClick={() => build(item.id)}
-                    >
-                      <i className="bi bi-upload fs-5"></i> Update
-                    </button>
-                  )}
-                  {details && (
-                    <Link
-                      className={`btn btn-secondary py-1 me-2 float-end ${styles.button}`}
-                      to={`${pathname}/${item.id}`}
-                    >
-                      <i className="bi bi-info fs-5"></i> Details
-                    </Link>
-                  )}
-                  {logs && (
-                    <button
-                      className={`btn btn-secondary py-1 me-2 float-end ${styles.button}`}
-                      onClick={() => logs(item.id)}
-                    >
-                      <i className="bi bi-info fs-5"></i> Build Logs
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-    </div>
-  );
-}
-
-export default ListCard;
+                </TextField>
+              </FormControl>
+            </Box>
+          </Box>
